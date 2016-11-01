@@ -19,7 +19,7 @@ class PollBot extends TelegramBot {
     if (!$this->redis) {
       $this->redis = new Redis();
       $redis_connected = $this->redis->connect(self::$REDIS_HOST, self::$REDIS_PORT);
-      $redis_authenticated = $this->redis->auth($REDIS_PASSWORD);
+      $redis_authenticated = $this->redis->auth(self::$REDIS_PASSWORD);
       if (!$redis_connected || !$redis_authenticated) {
         throw new Exception("Redis not connected");
       }
