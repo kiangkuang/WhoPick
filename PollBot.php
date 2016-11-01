@@ -1,5 +1,6 @@
 <?php
 
+require __DIR__ . '/vendor/autoload.php';
 require_once 'TelegramBot.php';
 
 class PollBot extends TelegramBot {
@@ -13,12 +14,7 @@ class PollBot extends TelegramBot {
 
   public function dbInit() {
     if (!$this->redis) {
-      $this->redis = new Redis();
-      $redis_connected = $this->redis->connect($_SERVER['REDIS_HOST'], $_SERVER['REDIS_PORT']);
-      $redis_authenticated = $this->redis->auth($_SERVER['REDIS_PASSWORD']);
-      if (!$redis_connected || !$redis_authenticated) {
-        throw new Exception("Redis not connected");
-      }
+      $this->redis = new Predis\Client($_SERVER['REDIS_URL']);
     }
   }
 }
