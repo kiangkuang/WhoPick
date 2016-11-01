@@ -4,7 +4,7 @@ ini_set('display_errors', '1');
 
 require_once 'PollBot.php';
 
-define('BOT_TOKEN', getenv('BOT_TOKEN'));
+define('BOT_TOKEN', $_SERVER['BOT_TOKEN']);
 define('BOT_WEBHOOK', 'https://' . $_SERVER['SERVER_NAME'] . '/poll-bot-webhook.php');
 
 $bot = new PollBot(BOT_TOKEN, 'PollBotChat');
