@@ -21,5 +21,7 @@ if (php_sapi_name() == 'cli') {
 $response = file_get_contents('php://input');
 $update = json_decode($response, true);
 
+error_log(print_r($update));
+
 $bot->init();
 $bot->onUpdateReceived($update);
