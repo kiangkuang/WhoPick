@@ -6,8 +6,9 @@ class PollBot extends TelegramBot {
 
   public $redis = false;
 
-  protected static $REDIS_HOST = '127.0.0.1';
-  protected static $REDIS_PORT = 6379;
+  protected static $REDIS_HOST = getenv('REDIS_HOST');
+  protected static $REDIS_PORT = getenv('REDIS_PORT');
+  protected static $REDIS_PASSWORD = getenv('REDIS_PASSWORD');
 
   public function init() {
     parent::init();
@@ -18,7 +19,8 @@ class PollBot extends TelegramBot {
     if (!$this->redis) {
       $this->redis = new Redis();
       $redis_connected = $this->redis->connect(self::$REDIS_HOST, self::$REDIS_PORT);
-      if (!$redis_connected) {
+      $redis_authenticated = $this->redis->auth($REDIS_PASSWORD);
+      if (!$redis_connected || !$redis_authenticated) {
         throw new Exception("Redis not connected");
       }
     }
