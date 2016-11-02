@@ -1,0 +1,23 @@
+{
+  "name": "whopick",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "telegram-node-bot": "^4.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://kiangkuang@github.com/kiangkuang/WhoPick.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kiangkuang/WhoPick/issues"
+  },
+  "homepage": "https://github.com/kiangkuang/WhoPick#readme"
+}
