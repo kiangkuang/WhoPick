@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "engines": {
+    "node": "6.9.1"
+  },
   "dependencies": {
     "telegram-node-bot": "^4.0.3"
   },
