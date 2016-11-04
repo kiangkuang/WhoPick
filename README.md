@@ -1,15 +1,16 @@
 # WhoPick
 
 ## Usage
-1. Set up bot token
-
-        export BOT_TOKEN=<token here>
-
-2. Install dependencies
+1. Install dependencies
 
         npm install 
 
-3. Start Node.js server 
+2. Set up bot token
+
+        npm run setup
+
+3. Open .env file and replace '<token>' with the real bot token
+
+4. Start Node.js server 
 
         npm start
-

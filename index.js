@@ -1,7 +1,9 @@
 'use strict'
 
-if (!process.env.BOT_TOKEN) {
-    console.log('ERROR: [BOT_TOKEN] env variable not set.')
+require('dotenv').config({silent: process.env.NODE_ENV === 'production'})
+
+if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>') {
+    console.log('ERROR: "BOT_TOKEN" env variable not set.')
     return
 }
 
@@ -23,7 +25,7 @@ class PingController extends TelegramBaseController {
      * @param {Scope} $
      */
     pingHandler($) {
-        $.sendMessage('ponglocal')
+        $.sendMessage('pong ' + process.env.NODE_ENV)
     }
 
     get routes() {
