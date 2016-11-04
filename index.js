@@ -9,7 +9,7 @@ const tg = process.env.NODE_ENV === 'production' ?
         webhook: {
             url: 'https://whopick.herokuapp.com',
             port: process.env.PORT,
-            host: 'localhost'
+            host: '0.0.0.0'
         }
     }) : 
     new Telegram.Telegram(process.env.BOT_TOKEN)
