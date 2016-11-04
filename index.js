@@ -35,8 +35,12 @@ class PingController extends TelegramBaseController {
     }
 }
 
+class OtherwiseController extends TelegramBaseController {
+    handle() {
+        console.log('otherwise')
+    }
+}
+
 tg.router
-    .when(
-        new TextCommand('ping', 'pingCommand'),
-        new PingController()
-    )
+    .when(new TextCommand('ping', 'pingCommand'), new PingController())
+    .otherwise(new OtherwiseController())
