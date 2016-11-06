@@ -9,8 +9,12 @@ var TelegramBot = require('node-telegram-bot-api');
 var token = process.env.BOT_TOKEN;
 // Setup polling way
 var bot = process.env.NODE_ENV === 'production' ?
-    new TelegramBot(token, {webhook: {port: process.env.PORT, host: '0.0.0.0'}}):
+    new TelegramBot(token, {webHook: {port: process.env.PORT, host: '0.0.0.0'}}):
     new TelegramBot(token, {polling: true});
+
+if (process.env.NODE_ENV === 'production') {
+    bot.setWebHook('https://whopick.herokuapp.com/bot'+token)
+}
 
 // Matches /echo [whatever]
 bot.onText(/\/echo (.+)/, function (msg, match) {
