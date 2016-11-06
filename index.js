@@ -13,20 +13,54 @@ var bot = process.env.NODE_ENV === 'production' ?
     new TelegramBot(token, {polling: true});
 
 if (process.env.NODE_ENV === 'production') {
-    bot.setWebHook('https://whopick.herokuapp.com/bot'+token)
+    bot.setWebHook('https://whopick.herokuapp.com/bot' + token)
 }
 
 // Matches /echo [whatever]
-bot.onText(/\/echo (.+)/, function (msg, match) {
-  var fromId = msg.from.id;
-  var resp = match[1];
-  bot.sendMessage(fromId, resp);
+bot.onText(/\/echo (.+)/, function(msg, match) {
+    var resp = match[1];
+    bot.sendMessage(msg.chat.id, resp);
 });
 
-// Any kind of message
-bot.on('message', function (msg) {
-  var chatId = msg.chat.id;
-  // photo can be: a file path, a stream or a Telegram file_id
-  var photo = 'cats.png';
-  //bot.sendPhoto(chatId, photo, {caption: 'Lovely kittens'});
+var qn = [];
+var opts = {
+    reply_markup: JSON.stringify({
+        force_reply: true
+    })
+};
+
+// Matches /start
+bot.onText(/\/start/, function(msg, match) {
+    qn = []
+    bot.sendMessage(msg.chat.id, 'wat qn?', opts)
+        .then(function(sent) {
+            bot.onReplyToMessage(sent.chat.id, sent.message_id, function(message) {
+                qn.push(message.text)
+                getChoice(msg, qn);
+            });
+        });
+});
+
+function getChoice(msg, qn) {
+    bot.sendMessage(msg.chat.id, 'wat choice? /done if done', opts)
+        .then(function(sent) {
+            bot.onReplyToMessage(sent.chat.id, sent.message_id, function(message) {
+                if (message.text != "/done") {
+                    qn.push(message.text)
+                    getChoice(msg, qn)
+                }
+            });
+        });
+}
+
+// Matches /start [whatever]
+bot.onText(/\/start (.+)/, function(msg, match) {
+    qn = []
+    qn.push(match[1])
+    getChoice(msg, qn);
+});
+
+// Matches /done
+bot.onText(/\/done/, function(msg, match) {
+    bot.sendMessage(msg.chat.id, qn.toString());
 });
