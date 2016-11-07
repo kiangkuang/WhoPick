@@ -22,45 +22,61 @@ bot.onText(/\/echo (.+)/, function(msg, match) {
     bot.sendMessage(msg.chat.id, resp);
 });
 
-var qn = [];
-var opts = {
-    reply_markup: JSON.stringify({
-        force_reply: true
-    })
-};
+var matched = false
+var userPolls = new Map();
+var wipPolls = new Map();
+
 
 // Matches /start
 bot.onText(/\/start/, function(msg, match) {
-    qn = []
-    bot.sendMessage(msg.chat.id, 'wat qn?', opts)
-        .then(function(sent) {
-            bot.onReplyToMessage(sent.chat.id, sent.message_id, function(message) {
-                qn.push(message.text)
-                getChoice(msg, qn);
-            });
-        });
-});
+    matched = true
+    poll = {
+        owner: msg.from.id,
+        qn: '',
+        ans: []
+    }
+    wipPolls.set(msg.from.id, poll)
 
-function getChoice(msg, qn) {
-    bot.sendMessage(msg.chat.id, 'wat choice? /done if done', opts)
-        .then(function(sent) {
-            bot.onReplyToMessage(sent.chat.id, sent.message_id, function(message) {
-                if (message.text != "/done") {
-                    qn.push(message.text)
-                    getChoice(msg, qn)
-                }
-            });
-        });
-}
-
-// Matches /start [whatever]
-bot.onText(/\/start (.+)/, function(msg, match) {
-    qn = []
-    qn.push(match[1])
-    getChoice(msg, qn);
+    bot.sendMessage(msg.from.id, 'wat qn?')
 });
 
 // Matches /done
 bot.onText(/\/done/, function(msg, match) {
-    bot.sendMessage(msg.chat.id, qn.toString());
+    matched = true
+    var wipPoll = wipPolls.get(msg.from.id)
+    if (wipPoll && wipPoll.qn && wipPoll.ans.length) {
+        wipPolls.delete(msg.from.id)
+        if (userPolls.has(msg.from.id)) {
+            userPolls.get(msg.from.id).push(wipPoll)
+        } else {
+            userPolls.set(msg.from.id, [wipPoll])
+        }
+        
+        bot.sendMessage(msg.from.id, JSON.stringify(wipPoll))
+        console.log(userPolls)
+    } else {
+        bot.sendMessage(msg.from.id, 'wtf u trying to do')
+    }
+});
+
+// Matches all other
+bot.onText(/(.*)/,function(msg, match) {
+    if (matched) {
+        matched = false
+        return
+    }
+
+    var wipPoll = wipPolls.get(msg.from.id)
+    if (wipPoll) {
+        if (!wipPoll.qn) {
+            wipPoll.qn = match[0]
+        } else {
+            wipPoll.ans.push(match[0])
+        }
+    }
+    if (wipPoll.ans.length == 0) {
+        bot.sendMessage(msg.from.id, 'nice one lah. wat choice?')
+    } else {
+        bot.sendMessage(msg.from.id, 'nice one lah. wat other choice? /done if pang kang')
+    }
 });
