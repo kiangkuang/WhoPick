@@ -83,18 +83,21 @@ bot.onText(/(.*)/, function(msg, match) {
 });
 
 bot.on('inline_query', function(msg) {
-    var polls = userPolls.get(msg.from.id);
     var results = [];
-    polls.forEach(function(poll, id) {
-        results.push({
-            type: 'article',
-            id: id.toString(),
-            message_text: 'blahblah',
-            title: poll.qn,
-            description: poll.ans.toString()
-        });
-    });
 
+    var polls = userPolls.get(msg.from.id);
+    if (polls) {
+        polls.forEach(function(poll, id) {
+            results.push({
+                type: 'article',
+                id: id.toString(),
+                message_text: 'blahblah',
+                title: poll.qn,
+                description: poll.ans.toString()
+            });
+        });
+    }
+    
     bot.answerInlineQuery(msg.id, results, {
         switch_pm_text: 'new poll',
         is_personal: true
