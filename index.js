@@ -74,7 +74,7 @@ bot.onText(/(.*)/, function(msg, match) {
             wipPoll.ans.push(match[0]);
         }
 
-        if (wipPollwipPoll.ans.length == 0) {
+        if (wipPoll.ans.length == 0) {
             bot.sendMessage(msg.from.id, 'nice one lah. wat choice?');
         } else {
             bot.sendMessage(msg.from.id, 'nice one lah. wat other choice? /done if pang kang');
