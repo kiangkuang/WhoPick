@@ -54,10 +54,7 @@ bot.onText(/\/done/, function(msg, match) {
         userPolls.get(msg.from.id).set(currPoll.id, currPoll);
 
         var reply = 'poll created.\n\n';
-        reply += '*' + currPoll.question + '*\n\n';
-        currPoll.choices.forEach(function(question){
-            reply += question + '\n';
-        })
+        reply += formatPoll(poll);
 
         opts = {
             parse_mode: 'Markdown',
@@ -97,13 +94,18 @@ bot.onText(/(.*)/, function(msg, match) {
         if (!currPoll.question) {
             currPoll.question = match[0];
         } else {
-            currPoll.choices.push(match[0]);
+            currPoll.choices.push(
+                {
+                    text: match[0],
+                    voters: []
+                }
+            );
         }
 
         if (currPoll.choices.length == 0) {
-            bot.sendMessage(msg.from.id, 'nice one lah. wat choice?');
+            bot.sendMessage(msg.from.id, 'nice one lah. wat first choice?');
         } else {
-            bot.sendMessage(msg.from.id, 'nice one lah. wat other choice? /done if pang kang');
+            bot.sendMessage(msg.from.id, 'nice one lah. wat other choice?\n/done if pang kang');
         }
     }
 });
@@ -115,15 +117,10 @@ bot.on('inline_query', function(msg) {
     if (polls) {
         polls.forEach(function(poll) {
             if (poll.question.indexOf(msg.query) > -1) {
-                text = '*' + poll.question + '*\n\n';
-                poll.choices.forEach(function(question){
-                    text += question + '\n';
-                })
-
                 results.push({
                     type: 'article',
                     id: poll.id.toString(),
-                    message_text: text,
+                    message_text: formatPoll(poll),
                     parse_mode: 'Markdown',
                     title: poll.question,
                     description: poll.choices.toString()
@@ -145,3 +142,18 @@ bot.on('callback_query', function(msg) {
         bot.sendMessage(msg.from.id, "deleted liao");
     }
 });
+
+function formatPoll(poll) {
+    text = '*' + poll.question + '*\n';
+    poll.choices.forEach(function(question) {
+        text += question.text + '\n';
+
+        text += '```';
+        question.voters.forEach(function(voter, i) {
+            text += (i + 1) + ') ' + voter + '\n';
+        });
+        text += '```';
+    });
+
+    return text;
+}
