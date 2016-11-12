@@ -110,7 +110,7 @@ bot.onText(/(.*)/, function(msg, match) {
 });
 
 bot.on('inline_query', function(msg) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ?', [msg.from.id, '%' + msg.query + '%'], function(err, result) {
+    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [msg.from.id, '%' + msg.query + '%'], function(err, result) {
         if (err && !isProduction) throw err;
         var polls = parseResult(result);
         var reply = [];
