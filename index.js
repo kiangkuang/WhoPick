@@ -1,18 +1,22 @@
-require('dotenv').config({
+
+var TelegramBot = require('node-telegram-bot-api');
+var sprintf = require("sprintf-js").sprintf;
+var dotenv = require('dotenv');
+var mysql = require('mysql');
+
+dotenv.config({
     silent: process.env.NODE_ENV === 'production'
 });
+
 if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.env.DB_URL || process.env.DB_URL === '<db url>') {
     console.log('ERROR: env variable not set.');
     return;
 }
 
-var TelegramBot = require('node-telegram-bot-api');
-var sprintf = require("sprintf-js").sprintf;
-var mysql = require('mysql');
 var connection = mysql.createConnection(process.env.DB_URL);
-
+var isProduction = process.env.NODE_ENV === 'production'
 var token = process.env.BOT_TOKEN;
-var bot = process.env.NODE_ENV === 'production' ?
+var bot = isProduction ?
     new TelegramBot(token, {
         webHook: {
             port: process.env.PORT,
@@ -23,18 +27,12 @@ var bot = process.env.NODE_ENV === 'production' ?
         polling: true
     });
 
-if (process.env.NODE_ENV === 'production') {
+if (isProduction) {
     bot.setWebHook('https://whopick.herokuapp.com/bot' + token);
 }
 
-// Matches /echo [whatever]
-bot.onText(/\/echo (.+)/, function(msg, match) {
-    var resp = match[1];
-    bot.sendMessage(msg.chat.id, resp);
-});
-
 var matched = false;
-var questionMap = new Map(); // user_id : status
+var questionMap = new Map(); // value -1 = need question, > 0 = need choice
 
 // Matches /start
 bot.onText(/\/start/, function(msg, match) {
@@ -52,13 +50,13 @@ bot.onText(/\/done/, function(msg, match) {
         connection.query('UPDATE question SET ? WHERE question_id = ?', [{
             is_enabled: 1
         }, questionId], function(err, result) {
-            if (err) throw err;
+            if (err && !isProduction) throw err;
             questionMap.delete(msg.from.id);
 
             var reply = 'poll created liao.\n\n';
 
-            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question INNER JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, result) {
-                if (err) throw err;
+            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, result) {
+                if (err && !isProduction) throw err;
                 var polls = parseResult(result);
                 var poll = polls[questionId];
                 opts = {
@@ -98,7 +96,7 @@ bot.onText(/(.*)/, function(msg, match) {
             user_id: msg.from.id,
             question: match[0]
         }, function(err, result) {
-            if (err) throw err;
+            if (err && !isProduction) throw err;
             questionMap.set(msg.from.id, result.insertId);
             bot.sendMessage(msg.from.id, 'nice one lah. wat first choice?');
         });
@@ -107,7 +105,7 @@ bot.onText(/(.*)/, function(msg, match) {
             question_id: questionId,
             choice: match[0]
         }, function(err, result) {
-            if (err) throw err;
+            if (err && !isProduction) throw err;
             bot.sendMessage(msg.from.id, 'nice one lah. wat other choice?\n/done if pang kang.');
         });
     }
@@ -115,7 +113,7 @@ bot.onText(/(.*)/, function(msg, match) {
 
 bot.on('inline_query', function(msg) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ?', [msg.from.id, '%' + msg.query + '%'], function(err, result) {
-        if (err) throw err;
+        if (err && !isProduction) throw err;
         var polls = parseResult(result);
         var reply = [];
         polls.map(function(poll) {
@@ -145,7 +143,7 @@ bot.on('callback_query', function(msg) {
     switch (commands[0]) {
         case '/delete': // /delete question_id
             connection.query('DELETE FROM question WHERE question_id = ?', commands[1], function(err, result) {
-                if (err) throw err;
+                if (err && !isProduction) throw err;
                 bot.editMessageText('deleted liao', {
                     chat_id: msg.message.chat.id,
                     message_id: msg.message.message_id
@@ -153,26 +151,49 @@ bot.on('callback_query', function(msg) {
             });
             break;
         case '/vote': // /vote question_id choice_id
-            connection.query('INSERT INTO vote SET ?', {
-                choice_id: commands[2],
-                user_id: msg.from.id,
-                name: msg.from.first_name
-            }, function(err, result) {
-                if (err) return;
-                connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', commands[1], function(err, result) {
-                    if (err) throw err;
-                    var polls = parseResult(result);
-                    var poll = polls[commands[1]];
-                    var opts = {
-                        inline_message_id: msg.inline_message_id,
-                        parse_mode: 'Markdown',
-                        reply_markup: {
-                            inline_keyboard: getInlineKeyboard(poll)
-                        }
-                    };
-                    bot.editMessageText(formatPoll(poll), opts);
-                });
-            });
+            connection.query('SELECT EXISTS(SELECT * FROM vote WHERE choice_id = ? AND user_id = ?) exist', [commands[2], msg.from.id], function(err, result) {
+                if (err && !isProduction) throw err;
+                if (!result[0].exist) {
+                    connection.query('INSERT INTO vote SET ?', {
+                        choice_id: commands[2],
+                        user_id: msg.from.id,
+                        name: msg.from.first_name
+                    }, function(err, result) {
+                        if (err && !isProduction) throw err; // might error if voting on a deleted question
+                        connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', commands[1], function(err, result) {
+                            if (err && !isProduction) throw err;
+                            var polls = parseResult(result);
+                            var poll = polls[commands[1]];
+                            var opts = {
+                                inline_message_id: msg.inline_message_id,
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: getInlineKeyboard(poll)
+                                }
+                            };
+                            bot.editMessageText(formatPoll(poll), opts);
+                        });
+                    });
+                } else {
+                    connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [commands[2], msg.from.id], function(err, result) {
+                        if (err && !isProduction) throw err;
+                        connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', commands[1], function(err, result) {
+                            if (err && !isProduction) throw err;
+                            var polls = parseResult(result);
+                            var poll = polls[commands[1]];
+                            var opts = {
+                                inline_message_id: msg.inline_message_id,
+                                parse_mode: 'Markdown',
+                                reply_markup: {
+                                    inline_keyboard: getInlineKeyboard(poll)
+                                }
+                            };
+                            bot.editMessageText(formatPoll(poll), opts);
+                        });
+                    });
+                }
+            })
+            
             break;
     }
 });
