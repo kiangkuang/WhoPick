@@ -1,12 +1,10 @@
+require('dotenv').config({
+    silent: process.env.NODE_ENV === 'production'
+});
 
 var TelegramBot = require('node-telegram-bot-api');
 var sprintf = require("sprintf-js").sprintf;
-var dotenv = require('dotenv');
 var mysql = require('mysql');
-
-dotenv.config({
-    silent: process.env.NODE_ENV === 'production'
-});
 
 if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.env.DB_URL || process.env.DB_URL === '<db url>') {
     console.log('ERROR: env variable not set.');
