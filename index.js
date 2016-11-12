@@ -111,19 +111,29 @@ bot.onText(/(.*)/, function(msg, match) {
 });
 
 bot.on('inline_query', function(msg) {
-    var results = [];
-
     var polls = userPolls.get(msg.from.id);
     if (polls) {
+        var results = [];
+
         polls.forEach(function(poll) {
             if (poll.question.indexOf(msg.query) > -1) {
+                var inlineKeyboard = poll.choices.map(function(choice, i) {
+                    return [{text: choice.text, callback_data: '/vote ' + msg.from.id + ' ' + poll.id + ' ' + i}];
+                });
+                var description = poll.choices.map(function(choice) {
+                    return choice.text;
+                });
+
                 results.push({
                     type: 'article',
                     id: poll.id.toString(),
                     message_text: formatPoll(poll),
                     parse_mode: 'Markdown',
                     title: poll.question,
-                    description: poll.choices.toString()
+                    description: description.toString(),
+                    reply_markup: {
+                        inline_keyboard: inlineKeyboard
+                    }
                 });
             }
         });
@@ -137,22 +147,29 @@ bot.on('inline_query', function(msg) {
 });
 
 bot.on('callback_query', function(msg) {
-    if (msg.data.split(' ')[0] == '/delete') {
-        userPolls.get(msg.from.id).delete(parseInt(msg.data.split(' ')[1]));
-        bot.sendMessage(msg.from.id, "deleted liao");
+    var commands = msg.data.split(' ');
+    switch (commands[0]) {
+        case '/delete':
+            userPolls.get(msg.from.id).delete(parseInt(commands[1]));
+            bot.sendMessage(msg.from.id, "deleted liao");
+            break;
+        case '/vote': // /vote userid pollid choiceIndex
+            var poll = userPolls.get(parseInt(commands[1])).get(parseInt(commands[2]));
+            poll.choices[commands[3]].voters.push(msg.from.first_name);
+            console.log(poll)
+            console.log(poll.choices)
+            break;
     }
 });
 
 function formatPoll(poll) {
     text = '*' + poll.question + '*\n';
-    poll.choices.forEach(function(question) {
-        text += question.text + '\n';
+    poll.choices.forEach(function(choice) {
+        text += '_' + choice.text + '_\n';
 
-        text += '```';
-        question.voters.forEach(function(voter, i) {
+        choice.voters.forEach(function(voter, i) {
             text += (i + 1) + ') ' + voter + '\n';
         });
-        text += '```';
     });
 
     return text;
