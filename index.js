@@ -36,7 +36,7 @@ var questionMap = new Map(); // value -1 = need question, > 0 = need choice
 bot.onText(/\/start/, function(msg, match) {
     matched = true;
     questionMap.set(msg.from.id, -1);
-    bot.sendMessage(msg.from.id, 'wat question?');
+    bot.sendMessage(msg.from.id, 'Let\'s create a new poll. First, send me the question.');
 });
 
 // Matches /done
@@ -51,7 +51,7 @@ bot.onText(/\/done/, function(msg, match) {
             if (err && !isProduction) throw err;
             questionMap.delete(msg.from.id);
 
-            var reply = 'poll created liao.\n\n';
+            var reply = 'Poll created. You can now publish it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
 
             connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, result) {
                 if (err && !isProduction) throw err;
@@ -62,11 +62,18 @@ bot.onText(/\/done/, function(msg, match) {
                     reply_markup: JSON.stringify({
                         inline_keyboard: [
                             [{
-                                text: 'share me',
+                                text: 'Publish poll',
                                 switch_inline_query: poll.question
                             }],
                             [{
-                                text: 'delete me',
+                                text: 'Update results',
+                                callback_data: '/update ' + poll.question_id
+                            }],
+                            [{
+                                text: 'Vote',
+                                callback_data: '/startvote ' + poll.question_id
+                            }, {
+                                text: 'Close',
                                 callback_data: '/delete ' + poll.question_id
                             }]
                         ]
@@ -96,7 +103,9 @@ bot.onText(/(.*)/, function(msg, match) {
         }, function(err, result) {
             if (err && !isProduction) throw err;
             questionMap.set(msg.from.id, result.insertId);
-            bot.sendMessage(msg.from.id, 'nice one lah. wat first choice?');
+            bot.sendMessage(msg.from.id, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', match[0]), {
+                parse_mode: 'Markdown'
+            });
         });
     } else if (questionId > 0) {
         connection.query('INSERT INTO choice SET ?', {
@@ -104,7 +113,9 @@ bot.onText(/(.*)/, function(msg, match) {
             choice: match[0]
         }, function(err, result) {
             if (err && !isProduction) throw err;
-            bot.sendMessage(msg.from.id, 'nice one lah. wat other choice?\n/done if pang kang.');
+            bot.sendMessage(msg.from.id, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', match[0]), {
+                parse_mode: 'Markdown'
+            });
         });
     }
 });
@@ -130,7 +141,7 @@ bot.on('inline_query', function(msg) {
 
         bot.answerInlineQuery(msg.id, reply, {
             cache_time: 0,
-            switch_pm_text: 'new poll',
+            switch_pm_text: 'Create new poll',
             is_personal: true
         });
     });
@@ -142,7 +153,7 @@ bot.on('callback_query', function(msg) {
         case '/delete': // /delete question_id
             connection.query('DELETE FROM question WHERE question_id = ?', commands[1], function(err, result) {
                 if (err && !isProduction) throw err;
-                bot.editMessageText('deleted liao', {
+                bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
                     chat_id: msg.message.chat.id,
                     message_id: msg.message.message_id
                 });
@@ -157,7 +168,13 @@ bot.on('callback_query', function(msg) {
                         user_id: msg.from.id,
                         name: msg.from.first_name
                     }, function(err, result) {
-                        if (err && !isProduction) throw err; // might error if voting on a deleted question
+                        if (err && !isProduction) {
+                            // voting on a closed poll
+                            bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
+                                inline_message_id: msg.inline_message_id,
+                            });
+                            return;
+                        }
                         connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', commands[1], function(err, result) {
                             if (err && !isProduction) throw err;
                             var polls = parseResult(result);
@@ -191,7 +208,6 @@ bot.on('callback_query', function(msg) {
                     });
                 }
             })
-            
             break;
     }
 });
@@ -255,6 +271,17 @@ function getInlineKeyboard(poll) {
         }]);
     });
     return result;
+}
+
+function getPollClosedInlineKeyboard() {
+    return JSON.stringify({
+                                inline_keyboard: [
+                                    [{
+                                        text: 'Poll Closed',
+                                        callback_data: '0'
+                                    }]
+                                ]
+                            });
 }
 
 function getDescription(poll) {
