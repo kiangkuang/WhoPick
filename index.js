@@ -35,39 +35,13 @@ var questionMap = new Map(); // value -1 = need question, > 0 = need choice
 // Matches /start
 bot.onText(/\/start/, function(msg, match) {
     matched = true;
-    questionMap.set(msg.from.id, -1);
-    bot.sendMessage(msg.from.id, 'Let\'s create a new poll. First, send me the question.');
+    start(msg.from.id);
 });
 
 // Matches /done
 bot.onText(/\/done/, function(msg, match) {
     matched = true;
-
-    var questionId = questionMap.get(msg.from.id);
-    if (questionId > 0) { // currently creating a poll
-        connection.query('UPDATE question SET ? WHERE question_id = ?', [{
-            is_enabled: 1
-        }, questionId], function(err, result) {
-            if (err && !isProduction) throw err;
-            questionMap.delete(msg.from.id);
-
-            var reply = 'Poll created. You can now publish it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
-
-            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, result) {
-                if (err && !isProduction) throw err;
-                var polls = parseResult(result);
-                var poll = polls[questionId];
-                opts = {
-                    parse_mode: 'Markdown',
-                    reply_markup: getAdminInlineKeyboard(poll.question, questionId)
-                }
-
-                bot.sendMessage(msg.from.id, reply + formatPoll(poll), opts);
-            });
-        });
-    } else {
-        bot.sendMessage(msg.from.id, 'wtf u trying to do');
-    }
+    done(msg.from.id);
 });
 
 // Matches all other
@@ -79,31 +53,92 @@ bot.onText(/(.*)/, function(msg, match) {
 
     var questionId = questionMap.get(msg.from.id);
     if (questionId == -1) {
-        connection.query('INSERT INTO question SET ?', {
-            user_id: msg.from.id,
-            question: match[0]
-        }, function(err, result) {
-            if (err && !isProduction) throw err;
-            questionMap.set(msg.from.id, result.insertId);
-            bot.sendMessage(msg.from.id, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', match[0]), {
-                parse_mode: 'Markdown'
-            });
-        });
+        addQuestion(msg.from.id, match[0]);
     } else if (questionId > 0) {
-        connection.query('INSERT INTO choice SET ?', {
-            question_id: questionId,
-            choice: match[0]
-        }, function(err, result) {
-            if (err && !isProduction) throw err;
-            bot.sendMessage(msg.from.id, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', match[0]), {
-                parse_mode: 'Markdown'
-            });
-        });
+        addChoice(msg.from.id, questionId, match[0]);
     }
 });
 
 bot.on('inline_query', function(msg) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [msg.from.id, '%' + msg.query + '%'], function(err, result) {
+    inlineQuery(msg.id, msg.from.id, msg.query)
+});
+
+bot.on('callback_query', function(msg) {
+    var commands = msg.data.split(' ');
+    switch (commands[0]) {
+        case '/vote': // /vote question_id choice_id
+            vote(msg.inline_message_id, msg.from.id, msg.from.first_name, commands[1], commands[2]);
+            break;
+        case '/update': // /update question_id
+            updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
+            break;
+        case '/delete': // /delete question_id
+            updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
+            deletePoll(msg.message.chat.id, msg.message.message_id, commands[1])
+            break;
+    }
+});
+
+function start(userId) {
+    questionMap.set(userId, -1);
+    bot.sendMessage(userId, 'Let\'s create a new poll. First, send me the question.');
+}
+
+function addQuestion(userId, question) {
+    connection.query('INSERT INTO question SET ?', {
+        user_id: userId,
+        question: question
+    }, function(err, result) {
+        if (err && !isProduction) throw err;
+        questionMap.set(userId, result.insertId);
+        bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
+            parse_mode: 'Markdown'
+        });
+    });
+}
+
+function addChoice(userId, questionId, choice) {
+    connection.query('INSERT INTO choice SET ?', {
+        question_id: questionId,
+        choice: choice
+    }, function(err, result) {
+        if (err && !isProduction) throw err;
+        bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', choice), {
+            parse_mode: 'Markdown'
+        });
+    });
+}
+
+function done(userId) {
+    var questionId = questionMap.get(userId);
+    if (questionId > 0) { // currently creating a poll
+        connection.query('UPDATE question SET ? WHERE question_id = ?', [{
+            is_enabled: 1
+        }, questionId], function(err, result) {
+            if (err && !isProduction) throw err;
+            questionMap.delete(userId);
+
+            var reply = 'Poll created. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
+
+            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, result) {
+                if (err && !isProduction) throw err;
+                var polls = parseResult(result);
+                var poll = polls[questionId];
+                opts = {
+                    parse_mode: 'Markdown',
+                    reply_markup: getAdminInlineKeyboard(poll.question, questionId)
+                }
+
+                bot.sendMessage(userId, reply + formatPoll(poll), opts);
+            });
+        });
+    } else {
+        bot.sendMessage(userId, 'wtf u trying to do');
+    }
+}
+
+function inlineQuery(queryId, userId, query) {
+    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [userId, '%' + query + '%'], function(err, result) {
         if (err && !isProduction) throw err;
         var polls = parseResult(result);
         var reply = [];
@@ -119,58 +154,40 @@ bot.on('inline_query', function(msg) {
             });
         });
 
-        bot.answerInlineQuery(msg.id, reply, {
+        bot.answerInlineQuery(queryId, reply, {
             cache_time: 0,
             switch_pm_text: 'Create new poll',
             is_personal: true
         });
     });
-});
+}
 
-bot.on('callback_query', function(msg) {
-    var commands = msg.data.split(' ');
-    switch (commands[0]) {
-        case '/vote': // /vote question_id choice_id
-            connection.query('SELECT EXISTS(SELECT * FROM vote WHERE choice_id = ? AND user_id = ?) exist', [commands[2], msg.from.id], function(err, result) {
-                if (err && !isProduction) throw err;
-                if (!result[0].exist) {
-                    connection.query('INSERT INTO vote SET ?', {
-                        choice_id: commands[2],
-                        user_id: msg.from.id,
-                        name: msg.from.first_name
-                    }, function(err, result) {
-                        if (err && !isProduction) {
-                            // voting on a closed poll
-                            bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
-                                inline_message_id: msg.inline_message_id,
-                            });
-                            return;
-                        }
-                        updatePoll(msg.inline_message_id, commands[1]);
+function vote(inlineMessageId, userId, name, questionId, choiceId) {
+    connection.query('SELECT EXISTS(SELECT * FROM vote WHERE choice_id = ? AND user_id = ?) exist', [choiceId, userId], function(err, result) {
+        if (err && !isProduction) throw err;
+        if (!result[0].exist) {
+            connection.query('INSERT INTO vote SET ?', {
+                choice_id: choiceId,
+                user_id: userId,
+                name: name
+            }, function(err, result) {
+                if (err && !isProduction) {
+                    // voting on a closed poll
+                    bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
+                        inline_message_id: inlineMessageId,
                     });
-                } else {
-                    connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [commands[2], msg.from.id], function(err, result) {
-                        if (err && !isProduction) throw err;
-                        updatePoll(msg.inline_message_id, commands[1]);
-                    });
+                    return;
                 }
-            })
-            break;
-        case '/update': // /update question_id
-            updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
-            break;
-        case '/delete': // /delete question_id
-            updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
-            connection.query('DELETE FROM question WHERE question_id = ?', commands[1], function(err, result) {
-                if (err && !isProduction) throw err;
-                bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
-                    chat_id: msg.message.chat.id,
-                    message_id: msg.message.message_id
-                });
+                updatePoll(inlineMessageId, questionId);
             });
-            break;
-    }
-});
+        } else {
+            connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, result) {
+                if (err && !isProduction) throw err;
+                updatePoll(inlineMessageId, questionId);
+            });
+        }
+    })
+}
 
 function updatePoll(inlineMessageId, questionId) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, result) {
@@ -198,6 +215,16 @@ function updateAdminPoll(chatId, messageId, questionId) {
             reply_markup: getAdminInlineKeyboard(poll.question, questionId)
         };
         bot.editMessageText(formatPoll(poll), opts);
+    });
+}
+
+function deletePoll(chatId, messageId, questionId) {
+    connection.query('DELETE FROM question WHERE question_id = ?', questionId, function(err, result) {
+        if (err && !isProduction) throw err;
+        bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
+            chat_id: chatId,
+            message_id: messageId
+        });
     });
 }
 
@@ -237,7 +264,7 @@ function parseResult(result) {
 }
 
 function formatPoll(poll) {
-    result = sprintf('*%s*', poll.question);
+    result = sprintf('*%s*\n', poll.question);
 
     poll.choices.forEach(function(choice) {
         result += sprintf('\n_%s_\n', choice.choice);
@@ -268,7 +295,7 @@ function getAdminInlineKeyboard(question, questionId) {
     return {
         inline_keyboard: [
             [{
-                text: 'Publish poll',
+                text: 'Share poll',
                 switch_inline_query: question
             }],
             [{
