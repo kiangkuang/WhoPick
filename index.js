@@ -11,7 +11,7 @@ if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.en
     return;
 }
 
-var connection = mysql.createConnection(process.env.DB_URL);
+var connection = mysql.createConnection(process.env.DB_URL + '?multipleStatements=true');
 var isProduction = process.env.NODE_ENV === 'production'
 var token = process.env.BOT_TOKEN;
 var bot = isProduction ?
@@ -73,7 +73,6 @@ bot.on('callback_query', function(msg) {
             updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
             break;
         case '/delete': // /delete question_id
-            updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
             deletePoll(msg.message.chat.id, msg.message.message_id, commands[1])
             break;
     }
@@ -144,12 +143,12 @@ function inlineQuery(queryId, userId, query) {
         var reply = [];
         polls.map(function(poll) {
             reply.push({
-                type: 'article',
-                id: poll.question_id.toString(),
-                message_text: formatPoll(poll),
                 parse_mode: 'Markdown',
+                id: poll.question_id.toString(),
+                type: 'article',
                 title: poll.question,
                 description: getDescription(poll),
+                message_text: formatPoll(poll),
                 reply_markup: getInlineKeyboard(poll)
             });
         });
@@ -163,68 +162,54 @@ function inlineQuery(queryId, userId, query) {
 }
 
 function vote(inlineMessageId, userId, name, questionId, choiceId) {
-    connection.query('SELECT EXISTS(SELECT * FROM vote WHERE choice_id = ? AND user_id = ?) exist', [choiceId, userId], function(err, result) {
+    connection.query('SELECT is_enabled FROM question WHERE question_id = ?; SELECT 1 FROM vote WHERE choice_id = ? AND user_id = ?', [questionId, choiceId, userId], function(err, results) {
         if (err && !isProduction) throw err;
-        if (!result[0].exist) {
-            connection.query('INSERT INTO vote SET ?', {
-                choice_id: choiceId,
-                user_id: userId,
-                name: name
-            }, function(err, result) {
-                if (err && !isProduction) {
-                    // voting on a closed poll
-                    bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
-                        inline_message_id: inlineMessageId,
-                    });
-                    return;
-                }
-                updatePoll(inlineMessageId, questionId);
-            });
+        if (results[0][0].is_enabled) {
+            if (results[1].length == 0) {
+                connection.query('INSERT INTO vote SET ?', {
+                    choice_id: choiceId,
+                    user_id: userId,
+                    name: name
+                }, function(err, result) {
+                    if (err && !isProduction) throw err;
+                    updatePoll(0, 0, inlineMessageId, questionId, false);
+                });
+            } else {
+                connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, result) {
+                    if (err && !isProduction) throw err;
+                    updatePoll(0, 0, inlineMessageId, questionId, false);
+                });
+            }
         } else {
-            connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, result) {
-                if (err && !isProduction) throw err;
-                updatePoll(inlineMessageId, questionId);
-            });
+            updatePoll(0, 0, inlineMessageId, questionId, true);
         }
-    })
-}
-
-function updatePoll(inlineMessageId, questionId) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, result) {
-        if (err && !isProduction) throw err;
-        var polls = parseResult(result);
-        var poll = polls[questionId];
-        var opts = {
-            inline_message_id: inlineMessageId,
-            parse_mode: 'Markdown',
-            reply_markup: getInlineKeyboard(poll)
-        };
-        bot.editMessageText(formatPoll(poll), opts);
     });
 }
 
-function updateAdminPoll(chatId, messageId, questionId) {
+function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, result) {
         if (err && !isProduction) throw err;
-        var polls = parseResult(result);
-        var poll = polls[questionId];
+        var poll = parseResult(result)[questionId];
         var opts = {
-            chat_id: chatId,
-            message_id: messageId,
             parse_mode: 'Markdown',
-            reply_markup: getAdminInlineKeyboard(poll.question, questionId)
+            reply_markup: isClosed ? getPollClosedInlineKeyboard() : getInlineKeyboard(poll)
         };
+        if (chatId) {
+            opts.chat_id = chatId;
+            opts.message_id = messageId;
+            opts.reply_markup = isClosed ? getPollClosedInlineKeyboard() : getAdminInlineKeyboard(poll.question, questionId)
+        } else if (inlineMessageId) {
+            opts.inline_message_id = inlineMessageId;
+            opts.reply_markup = isClosed ? getPollClosedInlineKeyboard() : getInlineKeyboard(poll)
+        }
+
         bot.editMessageText(formatPoll(poll), opts);
     });
 }
 
 function deletePoll(chatId, messageId, questionId) {
-    connection.query('DELETE FROM question WHERE question_id = ?', questionId, function(err, result) {
-        if (err && !isProduction) throw err;
-        bot.editMessageReplyMarkup(getPollClosedInlineKeyboard(), {
-            chat_id: chatId,
-            message_id: messageId
-        });
+    connection.query('UPDATE question SET is_enabled = 0 WHERE question_id = ?', questionId, function(err, results) {
+        updatePoll(chatId, messageId, 0, questionId, true);
     });
 }
 
