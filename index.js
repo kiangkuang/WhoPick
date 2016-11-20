@@ -44,6 +44,12 @@ bot.onText(/\/done/, function(msg, match) {
     done(msg.from.id);
 });
 
+// Matches /polls
+bot.onText(/\/polls/, function(msg, match) {
+    matched = true;
+    polls(msg.from.id);
+});
+
 // Matches all other
 bot.onText(/(.*)/, function(msg, match) {
     if (matched) {
@@ -70,7 +76,7 @@ bot.on('callback_query', function(msg) {
             vote(msg.inline_message_id, msg.from.id, msg.from.first_name, commands[1], commands[2]);
             break;
         case '/update': // /update question_id
-            updateAdminPoll(msg.message.chat.id, msg.message.message_id, commands[1]);
+            updatePoll(msg.message.chat.id, msg.message.message_id, 0, commands[1], false);
             break;
         case '/delete': // /delete question_id
             deletePoll(msg.message.chat.id, msg.message.message_id, commands[1])
@@ -121,7 +127,7 @@ function done(userId) {
 
             connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, results) {
                 if (err && !isProduction) throw err;
-                var polls = parseResult(results);
+                var polls = parseResults(results);
                 var poll = polls[questionId];
                 opts = {
                     parse_mode: 'Markdown',
@@ -139,7 +145,7 @@ function done(userId) {
 function inlineQuery(queryId, userId, query) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [userId, '%' + query + '%'], function(err, results) {
         if (err && !isProduction) throw err;
-        var polls = parseResult(results);
+        var polls = parseResults(results);
         var reply = [];
         polls.map(function(poll) {
             reply.push({
@@ -189,7 +195,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
 function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, results) {
         if (err && !isProduction) throw err;
-        var poll = parseResult(results)[questionId];
+        var poll = parseResults(results)[questionId];
         var opts = {
             parse_mode: 'Markdown',
             reply_markup: isClosed ? getPollClosedInlineKeyboard() : getInlineKeyboard(poll)
@@ -214,7 +220,18 @@ function deletePoll(chatId, messageId, questionId) {
     });
 }
 
-function parseResult(results) {
+function polls(userId) {
+    connection.query('SELECT question_id, question FROM question WHERE user_id = ? AND is_enabled = 1', userId, function(err, results) {
+        if (err && !isProduction) throw err;
+        opts = {
+            parse_mode: 'Markdown',
+            reply_markup: getPollsInlineKeyboard(results)
+        }
+        bot.sendMessage(userId, 'Here are your polls:', opts);
+    });
+}
+
+function parseResults(results) {
     var polls = [];
     results.forEach(function(row) {
         if (polls[row.question_id] == null) {
@@ -265,11 +282,25 @@ function formatPoll(poll) {
 
 function getInlineKeyboard(poll) {
     var result = [];
-    poll.choices.forEach(function(choice, i) {
+    poll.choices.forEach(function(choice) {
         // /vote question_id choice_id
         result.push([{
             text: choice.choice,
             callback_data: '/vote ' + poll.question_id + ' ' + choice.choice_id
+        }]);
+    });
+    return {
+        inline_keyboard: result
+    };
+}
+
+function getPollsInlineKeyboard(polls) {
+    var result = [];
+    polls.forEach(function(poll) {
+        // /view question_id
+        result.push([{
+            text: poll.question,
+            callback_data: '/update ' + poll.question_id
         }]);
     });
     return {
