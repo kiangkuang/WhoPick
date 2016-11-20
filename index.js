@@ -87,9 +87,9 @@ function addQuestion(userId, question) {
     connection.query('INSERT INTO question SET ?', {
         user_id: userId,
         question: question
-    }, function(err, result) {
+    }, function(err, results) {
         if (err && !isProduction) throw err;
-        questionMap.set(userId, result.insertId);
+        questionMap.set(userId, results.insertId);
         bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
             parse_mode: 'Markdown'
         });
@@ -100,7 +100,7 @@ function addChoice(userId, questionId, choice) {
     connection.query('INSERT INTO choice SET ?', {
         question_id: questionId,
         choice: choice
-    }, function(err, result) {
+    }, function(err, results) {
         if (err && !isProduction) throw err;
         bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', choice), {
             parse_mode: 'Markdown'
@@ -113,15 +113,15 @@ function done(userId) {
     if (questionId > 0) { // currently creating a poll
         connection.query('UPDATE question SET ? WHERE question_id = ?', [{
             is_enabled: 1
-        }, questionId], function(err, result) {
+        }, questionId], function(err, results) {
             if (err && !isProduction) throw err;
             questionMap.delete(userId);
 
             var reply = 'Poll created. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
 
-            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, result) {
+            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, results) {
                 if (err && !isProduction) throw err;
-                var polls = parseResult(result);
+                var polls = parseResult(results);
                 var poll = polls[questionId];
                 opts = {
                     parse_mode: 'Markdown',
@@ -137,9 +137,9 @@ function done(userId) {
 }
 
 function inlineQuery(queryId, userId, query) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [userId, '%' + query + '%'], function(err, result) {
+    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [userId, '%' + query + '%'], function(err, results) {
         if (err && !isProduction) throw err;
-        var polls = parseResult(result);
+        var polls = parseResult(results);
         var reply = [];
         polls.map(function(poll) {
             reply.push({
@@ -170,12 +170,12 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                     choice_id: choiceId,
                     user_id: userId,
                     name: name
-                }, function(err, result) {
+                }, function(err, results) {
                     if (err && !isProduction) throw err;
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
             } else {
-                connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, result) {
+                connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, results) {
                     if (err && !isProduction) throw err;
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
@@ -187,9 +187,9 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
 }
 
 function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, result) {
+    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, results) {
         if (err && !isProduction) throw err;
-        var poll = parseResult(result)[questionId];
+        var poll = parseResult(results)[questionId];
         var opts = {
             parse_mode: 'Markdown',
             reply_markup: isClosed ? getPollClosedInlineKeyboard() : getInlineKeyboard(poll)
@@ -209,13 +209,14 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
 
 function deletePoll(chatId, messageId, questionId) {
     connection.query('UPDATE question SET is_enabled = 0 WHERE question_id = ?', questionId, function(err, results) {
+        if (err && !isProduction) throw err;
         updatePoll(chatId, messageId, 0, questionId, true);
     });
 }
 
-function parseResult(result) {
+function parseResult(results) {
     var polls = [];
-    result.forEach(function(row) {
+    results.forEach(function(row) {
         if (polls[row.question_id] == null) {
             // create new question
             polls[row.question_id] = {
