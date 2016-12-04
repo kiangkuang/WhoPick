@@ -67,7 +67,7 @@ bot.onText(/(.*)/, function(msg, match) {
     }
 
     if (questionId == -1) {
-        addQuestion(msg.from.id, match[0]);
+        addQuestion(msg.from.id, msg.from.first_name, match[0]);
     } else if (questionId > 0) {
         addChoice(msg.from.id, questionId, match[0]);
     }
@@ -100,9 +100,10 @@ function start(userId) {
     bot.sendMessage(userId, 'Let\'s create a new poll. First, send me the question.');
 }
 
-function addQuestion(userId, question) {
+function addQuestion(userId, name, question) {
     connection.query('INSERT INTO question SET ?', {
         user_id: userId,
+        name: name,
         question: question
     }, function(err, results) {
         if (err && !isProduction) throw err;
