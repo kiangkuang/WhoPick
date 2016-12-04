@@ -89,8 +89,8 @@ bot.on('callback_query', function(msg) {
         case '/delete': // /delete question_id
             deletePoll(msg.message.chat.id, msg.message.message_id, commands[1])
             break;
-        case '/edit_question': // /edit question_id
-            setEditingQuestion(msg.from.id, commands[1])
+        case '/edit': // /edit question_id
+            startEditingQuestion(msg.from.id, commands[1])
             break;
     }
 });
@@ -110,24 +110,6 @@ function addQuestion(userId, question) {
         bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
             parse_mode: 'Markdown'
         });
-    });
-}
-
-function setEditingQuestion(userId, questionId) {
-    editingMap.set(userId, questionId);
-    bot.sendMessage(
-        userId, 'Editing\n\nPlease send me the new title.', {
-            parse_mode: 'Markdown'
-        });
-}
-
-function editQuestion(userId, questionId, question) {
-    connection.query('UPDATE question SET ? WHERE question_id = ?', [{
-        question: question
-    }, questionId], function(err, results) {
-        if (err && !isProduction) throw err;
-        editingMap.delete(userId);
-        bot.sendMessage(userId, 'Poll edited', { parse_mode: 'Markdown' })
     });
 }
 
@@ -242,6 +224,25 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
     });
 }
 
+function startEditingQuestion(userId, questionId) {
+    editingMap.set(userId, questionId);
+    bot.sendMessage(userId, '*Editing*\nPlease send me the new question.', {
+        parse_mode: 'Markdown'
+    });
+}
+
+function editQuestion(userId, questionId, question) {
+    connection.query('UPDATE question SET ? WHERE question_id = ?', [{
+        question: question
+    }, questionId], function(err, results) {
+        if (err && !isProduction) throw err;
+        editingMap.delete(userId);
+        bot.sendMessage(userId, sprintf('Poll question edited to \'*%s*\'.\nUpdate or vote on the poll to see the change.', question), {
+            parse_mode: 'Markdown'
+        })
+    });
+}
+
 function deletePoll(chatId, messageId, questionId) {
     connection.query('UPDATE question SET is_enabled = 0 WHERE question_id = ?', questionId, function(err, results) {
         if (err && !isProduction) throw err;
@@ -349,12 +350,12 @@ function getAdminInlineKeyboard(question, questionId) {
                 callback_data: '/update ' + questionId
             }],
             [{
-                text: 'Close poll',
-                callback_data: '/delete ' + questionId
+                text: 'Edit question',
+                callback_data: '/edit ' + questionId
             }],
             [{
-                text: 'Edit question',
-                callback_data: '/edit_question ' + questionId
+                text: 'Close poll',
+                callback_data: '/delete ' + questionId
             }]
         ]
     };
