@@ -62,7 +62,7 @@ bot.onText(/(.*)/, function(msg, match) {
     var editingId = editingMap.get(msg.from.id);
 
     if (editingId) {
-        editQuestion(editingId, match[0]);
+        editQuestion(msg.from.id, editingId, match[0]);
         return;
     }
 
@@ -121,12 +121,12 @@ function setEditingQuestion(userId, questionId) {
         });
 }
 
-function editQuestion(questionId, question) {
+function editQuestion(userId, questionId, question) {
     connection.query('UPDATE question SET ? WHERE question_id = ?', [{
         question: question
     }, questionId], function(err, results) {
         if (err && !isProduction) throw err;
-        editingMap.delete(msg.from.id);
+        editingMap.delete(userId);
         bot.sendMessage(userId, 'Poll edited', { parse_mode: 'Markdown' })
     });
 }
