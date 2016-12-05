@@ -1,5 +1,5 @@
 require('dotenv').config({
-    silent: process.env.NODE_ENV === 'production'
+    silent: process.env.NODE_ENV != 'local'
 });
 
 var TelegramBot = require('node-telegram-bot-api');
@@ -12,21 +12,21 @@ if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.en
 }
 
 var connection = mysql.createConnection(process.env.DB_URL + '?multipleStatements=true');
-var isProduction = process.env.NODE_ENV === 'production'
+var isLocal = process.env.NODE_ENV === 'local'
 var token = process.env.BOT_TOKEN;
-var bot = isProduction ?
+var bot = isLocal ?
+    new TelegramBot(token, {
+        polling: true
+    }) :
     new TelegramBot(token, {
         webHook: {
             port: process.env.PORT,
             host: '0.0.0.0'
         }
-    }) :
-    new TelegramBot(token, {
-        polling: true
     });
 
-if (isProduction) {
-    bot.setWebHook('https://whopick.herokuapp.com/bot' + token);
+if (!isLocal) {
+    bot.setWebHook('https://' + process.env.HEROKU_APP_NAME + '.herokuapp.com/bot' + token);
 }
 
 var matched = false;
@@ -106,7 +106,7 @@ function addQuestion(userId, name, question) {
         name: name,
         question: question
     }, function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         questionMap.set(userId, results.insertId);
         bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
             parse_mode: 'Markdown'
@@ -119,7 +119,7 @@ function addChoice(userId, questionId, choice) {
         question_id: questionId,
         choice: choice
     }, function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', choice), {
             parse_mode: 'Markdown'
         });
@@ -132,13 +132,13 @@ function done(userId) {
         connection.query('UPDATE question SET ? WHERE question_id = ?', [{
             is_enabled: 1
         }, questionId], function(err, results) {
-            if (err && !isProduction) throw err;
+            if (err && isLocal) throw err;
             questionMap.delete(userId);
 
             var reply = 'Poll created. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
 
             connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, results) {
-                if (err && !isProduction) throw err;
+                if (err && isLocal) throw err;
                 var polls = parseResults(results);
                 var poll = polls[questionId];
                 opts = {
@@ -156,7 +156,7 @@ function done(userId) {
 
 function inlineQuery(queryId, userId, query) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [userId, '%' + query + '%'], function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         var polls = parseResults(results);
         var reply = [];
         polls.map(function(poll) {
@@ -181,7 +181,7 @@ function inlineQuery(queryId, userId, query) {
 
 function vote(inlineMessageId, userId, name, questionId, choiceId) {
     connection.query('SELECT is_enabled FROM question WHERE question_id = ?; SELECT 1 FROM vote WHERE choice_id = ? AND user_id = ?', [questionId, choiceId, userId], function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         if (results[0][0].is_enabled) {
             if (results[1].length == 0) {
                 connection.query('INSERT INTO vote SET ?', {
@@ -189,12 +189,12 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                     user_id: userId,
                     name: name
                 }, function(err, results) {
-                    if (err && !isProduction) throw err;
+                    if (err && isLocal) throw err;
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
             } else {
                 connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, results) {
-                    if (err && !isProduction) throw err;
+                    if (err && isLocal) throw err;
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
             }
@@ -206,7 +206,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
 
 function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
     connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         var poll = parseResults(results)[questionId];
         var opts = {
             parse_mode: 'Markdown',
@@ -236,7 +236,7 @@ function editQuestion(userId, questionId, question) {
     connection.query('UPDATE question SET ? WHERE question_id = ?', [{
         question: question
     }, questionId], function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         editingMap.delete(userId);
         bot.sendMessage(userId, sprintf('Poll question edited to \'*%s*\'.\nUpdate or vote on the poll to see the change.', question), {
             parse_mode: 'Markdown'
@@ -246,14 +246,14 @@ function editQuestion(userId, questionId, question) {
 
 function deletePoll(chatId, messageId, questionId) {
     connection.query('UPDATE question SET is_enabled = 0 WHERE question_id = ?', questionId, function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         updatePoll(chatId, messageId, 0, questionId, true);
     });
 }
 
 function polls(userId) {
     connection.query('SELECT question_id, question FROM question WHERE user_id = ? AND is_enabled = 1', userId, function(err, results) {
-        if (err && !isProduction) throw err;
+        if (err && isLocal) throw err;
         opts = {
             parse_mode: 'Markdown',
             reply_markup: getPollsInlineKeyboard(results)
