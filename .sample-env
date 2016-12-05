@@ -1,4 +1,4 @@
 NODE_ENV=local
-DB_URL=<db url>
-BOT_TOKEN=<token>
 DEBUG=node-telegram-bot-api
+BOT_TOKEN=<token>
+DB_URL=<db url>
