@@ -1,5 +1,5 @@
 require('dotenv').config({
-    silent: process.env.NODE_ENV != 'local'
+    silent: process.env.NODE_ENV != undefined
 });
 
 var TelegramBot = require('node-telegram-bot-api');
@@ -7,25 +7,25 @@ var sprintf = require("sprintf-js").sprintf;
 var mysql = require('mysql');
 
 if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.env.DB_URL || process.env.DB_URL === '<db url>') {
-    console.log('ERROR: env variable not set.');
+    console.log('ERROR: env variables not set.');
     return;
 }
 
 var connection = mysql.createConnection(process.env.DB_URL + '?multipleStatements=true');
 var isLocal = process.env.NODE_ENV === 'local'
 var token = process.env.BOT_TOKEN;
-var bot = isLocal ?
-    new TelegramBot(token, {
+
+if (isLocal) {
+    var bot = new TelegramBot(token, {
         polling: true
-    }) :
-    new TelegramBot(token, {
+    });
+} else {
+    var bot = new TelegramBot(token, {
         webHook: {
             port: process.env.PORT,
             host: '0.0.0.0'
         }
     });
-
-if (!isLocal) {
     bot.setWebHook('https://' + process.env.HEROKU_APP_NAME + '.herokuapp.com/bot' + token);
 }
 
