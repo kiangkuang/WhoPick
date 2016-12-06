@@ -1,17 +1,38 @@
+var sprintf = require("sprintf-js").sprintf;
 require('dotenv').config({
     silent: process.env.NODE_ENV != undefined
 });
-
-var TelegramBot = require('node-telegram-bot-api');
-var sprintf = require("sprintf-js").sprintf;
-var mysql = require('mysql');
 
 if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.env.DB_URL || process.env.DB_URL === '<db url>') {
     console.log('ERROR: env variables not set.');
     return;
 }
 
-var connection = mysql.createConnection(process.env.DB_URL + '?multipleStatements=true');
+var Sequelize = require('sequelize');
+var sequelize = new Sequelize(process.env.DB_URL);
+var Question = sequelize.define("question", {
+    question: Sequelize.STRING(4096),
+    userId: Sequelize.INTEGER,
+    name: Sequelize.STRING,
+    isEnabled: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: 0
+    }
+});
+
+var Choice = sequelize.define("choice", {
+    choice: Sequelize.STRING(4096)
+});
+
+var Vote = sequelize.define("vote", {
+    userId: Sequelize.INTEGER,
+    name: Sequelize.STRING
+});
+
+Question.hasMany(Choice);
+Choice.hasMany(Vote);
+
+var TelegramBot = require('node-telegram-bot-api');
 var isLocal = process.env.NODE_ENV === 'local'
 var token = process.env.BOT_TOKEN;
 
@@ -80,16 +101,16 @@ bot.on('inline_query', function(msg) {
 bot.on('callback_query', function(msg) {
     var commands = msg.data.split(' ');
     switch (commands[0]) {
-        case '/vote': // /vote question_id choice_id
+        case '/vote': // /vote questionId choiceId
             vote(msg.inline_message_id, msg.from.id, msg.from.first_name, commands[1], commands[2]);
             break;
-        case '/update': // /update question_id
+        case '/update': // /update questionId
             updatePoll(msg.message.chat.id, msg.message.message_id, 0, commands[1], false);
             break;
-        case '/delete': // /delete question_id
+        case '/delete': // /delete questionId
             deletePoll(msg.message.chat.id, msg.message.message_id, commands[1])
             break;
-        case '/edit': // /edit question_id
+        case '/edit': // /edit questionId
             startEditingQuestion(msg.from.id, commands[1])
             break;
     }
@@ -101,13 +122,12 @@ function start(userId) {
 }
 
 function addQuestion(userId, name, question) {
-    connection.query('INSERT INTO question SET ?', {
-        user_id: userId,
+    Question.create({
+        userId: userId,
         name: name,
         question: question
-    }, function(err, results) {
-        if (err && isLocal) throw err;
-        questionMap.set(userId, results.insertId);
+    }).then(function(result) {
+        questionMap.set(userId, result.id);
         bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
             parse_mode: 'Markdown'
         });
@@ -115,11 +135,10 @@ function addQuestion(userId, name, question) {
 }
 
 function addChoice(userId, questionId, choice) {
-    connection.query('INSERT INTO choice SET ?', {
-        question_id: questionId,
+    Choice.create({
+        questionId: questionId,
         choice: choice
-    }, function(err, results) {
-        if (err && isLocal) throw err;
+    }).then(function(result) {
         bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', choice), {
             parse_mode: 'Markdown'
         });
@@ -129,23 +148,27 @@ function addChoice(userId, questionId, choice) {
 function done(userId) {
     var questionId = questionMap.get(userId);
     if (questionId > 0) { // currently creating a poll
-        connection.query('UPDATE question SET ? WHERE question_id = ?', [{
-            is_enabled: 1
-        }, questionId], function(err, results) {
-            if (err && isLocal) throw err;
+        Question.update({
+            isEnabled: 1
+        }, {
+            where: {
+                id: questionId
+            }
+        }).then(function(result) {
             questionMap.delete(userId);
 
-            var reply = 'Poll created. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
-
-            connection.query('SELECT question.question_id, question, choice.choice_id, choice FROM question LEFT JOIN choice ON question.question_id = choice.question_id LEFT JOIN vote ON choice.choice_id = vote.choice_id WHERE question.question_id = ?', questionId, function(err, results) {
-                if (err && isLocal) throw err;
-                var polls = parseResults(results);
-                var poll = polls[questionId];
+            Question.findById(questionId, {
+                include: [{
+                    model: Choice,
+                    include: [Vote]
+                }]
+            }).then(function(poll) {
                 opts = {
                     parse_mode: 'Markdown',
-                    reply_markup: getAdminInlineKeyboard(poll.question, questionId)
+                    reply_markup: getAdminInlineKeyboard(poll.question, poll.id)
                 }
 
+                var reply = 'Poll created. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
                 bot.sendMessage(userId, reply + formatPoll(poll), opts);
             });
         });
@@ -155,14 +178,24 @@ function done(userId) {
 }
 
 function inlineQuery(queryId, userId, query) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q LEFT JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.user_id = ? AND question LIKE ? AND q.is_enabled = 1', [userId, '%' + query + '%'], function(err, results) {
-        if (err && isLocal) throw err;
-        var polls = parseResults(results);
+    Question.findAll({
+        where: {
+            userId: userId,
+            question: {
+                like: '%' + query + '%'
+            },
+            isEnabled: 1
+        },
+        include: [{
+            model: Choice,
+            include: [Vote]
+        }]
+    }).then(function(polls) {
         var reply = [];
         polls.map(function(poll) {
             reply.push({
                 parse_mode: 'Markdown',
-                id: poll.question_id.toString(),
+                id: poll.id.toString(),
                 type: 'article',
                 title: poll.question,
                 description: getDescription(poll),
@@ -180,34 +213,53 @@ function inlineQuery(queryId, userId, query) {
 }
 
 function vote(inlineMessageId, userId, name, questionId, choiceId) {
-    connection.query('SELECT is_enabled FROM question WHERE question_id = ?; SELECT 1 FROM vote WHERE choice_id = ? AND user_id = ?', [questionId, choiceId, userId], function(err, results) {
-        if (err && isLocal) throw err;
-        if (results[0][0].is_enabled) {
-            if (results[1].length == 0) {
-                connection.query('INSERT INTO vote SET ?', {
-                    choice_id: choiceId,
-                    user_id: userId,
+    Question.findById(questionId, {
+        include: [{
+            model: Choice,
+            where: {
+                id: choiceId
+            },
+            include: [{
+                model: Vote,
+                where: {
+                    userId: userId
+                },
+                required: false
+            }]
+        }]
+    }).then(function(poll) {
+        if (poll.isEnabled) {
+            if (poll.choices[0].votes.length == 0) {
+                Vote.create({
+                    choiceId: choiceId,
+                    userId: userId,
                     name: name
-                }, function(err, results) {
-                    if (err && isLocal) throw err;
+                }).then(function(result) {
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
             } else {
-                connection.query('DELETE FROM vote WHERE choice_id = ? AND user_id = ?', [choiceId, userId], function(err, results) {
-                    if (err && isLocal) throw err;
+                Vote.destroy({
+                    where: {
+                        choiceId: choiceId,
+                        userId: userId,
+                    }
+                }).then(function(result) {
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
             }
         } else {
             updatePoll(0, 0, inlineMessageId, questionId, true);
         }
-    });
+    })
 }
 
 function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
-    connection.query('SELECT q.question_id, question, c.choice_id, choice, v.vote_id, v.user_id, v.name FROM question q INNER JOIN choice c ON q.question_id = c.question_id LEFT JOIN vote v ON c.choice_id = v.choice_id WHERE q.question_id = ?', questionId, function(err, results) {
-        if (err && isLocal) throw err;
-        var poll = parseResults(results)[questionId];
+    Question.findById(questionId, {
+        include: [{
+            model: Choice,
+            include: [Vote]
+        }]
+    }).then(function(poll) {
         var opts = {
             parse_mode: 'Markdown',
             reply_markup: isClosed ? getPollClosedInlineKeyboard() : getInlineKeyboard(poll)
@@ -233,68 +285,49 @@ function startEditingQuestion(userId, questionId) {
 }
 
 function editQuestion(userId, questionId, question) {
-    connection.query('UPDATE question SET ? WHERE question_id = ?', [{
+    Question.update({
         question: question
-    }, questionId], function(err, results) {
-        if (err && isLocal) throw err;
+    }, {
+        where: {
+            id: questionId
+        }
+    }).then(function(result) {
         editingMap.delete(userId);
         bot.sendMessage(userId, sprintf('Poll question edited to \'*%s*\'.\nUpdate or vote on the poll to see the change.', question), {
             parse_mode: 'Markdown'
-        })
+        });
     });
 }
 
 function deletePoll(chatId, messageId, questionId) {
-    connection.query('UPDATE question SET is_enabled = 0 WHERE question_id = ?', questionId, function(err, results) {
-        if (err && isLocal) throw err;
+    Question.update({
+        isEnabled: 0
+    }, {
+        where: {
+            id: questionId
+        }
+    }).then(function(result) {
         updatePoll(chatId, messageId, 0, questionId, true);
     });
 }
 
 function polls(userId) {
-    connection.query('SELECT question_id, question FROM question WHERE user_id = ? AND is_enabled = 1', userId, function(err, results) {
-        if (err && isLocal) throw err;
+    Question.findAll({
+        where: {
+            userId: userId,
+            isEnabled: 1
+        },
+        include: [{
+            model: Choice,
+            include: [Vote]
+        }]
+    }).then(function(polls) {
         opts = {
             parse_mode: 'Markdown',
-            reply_markup: getPollsInlineKeyboard(results)
+            reply_markup: getPollsInlineKeyboard(polls)
         }
         bot.sendMessage(userId, 'Here are your polls:', opts);
     });
-}
-
-function parseResults(results) {
-    var polls = [];
-    results.forEach(function(row) {
-        if (polls[row.question_id] == null) {
-            // create new question
-            polls[row.question_id] = {
-                question_id: row.question_id,
-                question: row.question,
-                choices: []
-            };
-        }
-        var question = polls[row.question_id];
-
-        if (question.choices[row.choice_id] == null) {
-            // create new choice
-            question.choices[row.choice_id] = {
-                choice_id: row.choice_id,
-                choice: row.choice,
-                votes: []
-            };
-        }
-        var choice = question.choices[row.choice_id];
-
-        if (choice.votes[row.vote_id] == null) {
-            // create new vote
-            choice.votes[row.vote_id] = {
-                vote_id: row.vote_id,
-                user_id: row.user_id,
-                name: row.name
-            };
-        }
-    });
-    return polls;
 }
 
 function formatPoll(poll) {
@@ -303,22 +336,19 @@ function formatPoll(poll) {
     poll.choices.forEach(function(choice) {
         result += sprintf('\n_%s_\n', choice.choice);
 
-        var counter = 1;
-        choice.votes.forEach(function(vote) {
-            result += sprintf('%d) %s\n', counter++, vote.name)
+        choice.votes.forEach(function(vote, i) {
+            result += sprintf('%d) %s\n', i + 1, vote.name)
         });
     });
     return result;
 }
 
 function getInlineKeyboard(poll) {
-    var result = [];
-    poll.choices.forEach(function(choice) {
-        // /vote question_id choice_id
-        result.push([{
+    var result = poll.choices.map(function(choice) {
+        return [{
             text: choice.choice,
-            callback_data: '/vote ' + poll.question_id + ' ' + choice.choice_id
-        }]);
+            callback_data: '/vote ' + poll.id + ' ' + choice.id
+        }];
     });
     return {
         inline_keyboard: result
@@ -326,13 +356,11 @@ function getInlineKeyboard(poll) {
 }
 
 function getPollsInlineKeyboard(polls) {
-    var result = [];
-    polls.forEach(function(poll) {
-        // /view question_id
-        result.push([{
+    var result = polls.map(function(poll) {
+        return [{
             text: poll.question,
-            callback_data: '/update ' + poll.question_id
-        }]);
+            callback_data: '/update ' + poll.id
+        }];
     });
     return {
         inline_keyboard: result
@@ -374,9 +402,7 @@ function getPollClosedInlineKeyboard() {
 }
 
 function getDescription(poll) {
-    var result = [];
-    poll.choices.forEach(function(choice) {
-        result.push(choice.choice);
-    });
-    return result.join(', ');
+    return poll.choices.map(function(choice) {
+        return choice.choice;
+    }).join(', ');
 }
