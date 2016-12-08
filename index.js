@@ -14,7 +14,6 @@ var isLocal = process.env.NODE_ENV === 'local'
 var token = process.env.BOT_TOKEN;
 var questionMap = new Map(); // value == -1 = need question, > 0 = need choice
 var editingMap = new Map();
-var matched = false;
 
 if (isLocal) {
     var bot = new TelegramBot(token, {
@@ -30,40 +29,21 @@ if (isLocal) {
     bot.setWebHook('https://' + process.env.HEROKU_APP_NAME + '.herokuapp.com/bot' + token);
 }
 
-bot.onText(/\/start/, function(msg, match) {
-    matched = true;
-    start(msg.from.id);
-});
-
-bot.onText(/\/done/, function(msg, match) {
-    matched = true;
-    done(msg.from.id);
-});
-
-bot.onText(/\/polls/, function(msg, match) {
-    matched = true;
-    polls(msg.from.id);
-});
-
-// Matches all other
+// Matches all
 bot.onText(/(.*)/, function(msg, match) {
-    if (matched) {
-        matched = false;
-        return;
-    }
-
-    var questionId = questionMap.get(msg.from.id);
-    var editingId = editingMap.get(msg.from.id);
-
-    if (editingId) {
-        editQuestion(msg.from.id, editingId, match[0]);
-        return;
-    }
-
-    if (questionId == -1) {
-        addQuestion(msg.from.id, msg.from.first_name, match[0]);
-    } else if (questionId > 0) {
-        addChoice(msg.from.id, questionId, match[0]);
+    switch (match[0].split(' ')[0]) {
+        case '/start':
+            start(msg.from.id);
+            return;
+        case '/done':
+            done(msg.from.id);
+            return;
+        case '/polls':
+            polls(msg.from.id);
+            return;
+        default:
+            textInput(msg.from.id, msg.from.first_name, match[0]);
+            return;
     }
 });
 
@@ -92,6 +72,22 @@ bot.on('callback_query', function(msg) {
 function start(userId) {
     questionMap.set(userId, -1);
     bot.sendMessage(userId, 'Let\'s create a new poll. First, send me the question.');
+}
+
+function textInput(userId, name, text) {
+    var questionId = questionMap.get(userId);
+    var editingId = editingMap.get(userId);
+
+    if (editingId) {
+        editQuestion(userId, editingId, text);
+        return;
+    }
+
+    if (questionId == -1) {
+        addQuestion(userId, name, text);
+    } else if (questionId > 0) {
+        addChoice(userId, questionId, text);
+    }
 }
 
 function addQuestion(userId, name, question) {
