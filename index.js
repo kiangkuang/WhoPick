@@ -261,7 +261,11 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
         include: [{
             model: Choice,
             include: [Vote]
-        }]
+        }],
+        order: [
+            [Choice, 'id'],
+            [Choice, Vote, 'id']
+        ]
     }).then(function(poll) {
         var opts = {
             parse_mode: 'Markdown',
