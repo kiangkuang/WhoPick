@@ -1,4 +1,3 @@
-var sprintf = require("sprintf-js").sprintf;
 require('dotenv').config({
     silent: process.env.NODE_ENV != undefined
 });
@@ -8,33 +7,14 @@ if (!process.env.BOT_TOKEN || process.env.BOT_TOKEN === '<token>' || !process.en
     return;
 }
 
-var Sequelize = require('sequelize');
-var sequelize = new Sequelize(process.env.DB_URL);
-var Question = sequelize.define("question", {
-    question: Sequelize.STRING(4096),
-    userId: Sequelize.INTEGER,
-    name: Sequelize.STRING,
-    isEnabled: {
-        type: Sequelize.BOOLEAN,
-        defaultValue: 0
-    }
-});
-
-var Choice = sequelize.define("choice", {
-    choice: Sequelize.STRING(4096)
-});
-
-var Vote = sequelize.define("vote", {
-    userId: Sequelize.INTEGER,
-    name: Sequelize.STRING
-});
-
-Question.hasMany(Choice);
-Choice.hasMany(Vote);
-
+var sprintf = require("sprintf-js").sprintf;
+var models = require('./models');
 var TelegramBot = require('node-telegram-bot-api');
 var isLocal = process.env.NODE_ENV === 'local'
 var token = process.env.BOT_TOKEN;
+var questionMap = new Map(); // value == -1 = need question, > 0 = need choice
+var editingMap = new Map();
+var matched = false;
 
 if (isLocal) {
     var bot = new TelegramBot(token, {
@@ -50,23 +30,16 @@ if (isLocal) {
     bot.setWebHook('https://' + process.env.HEROKU_APP_NAME + '.herokuapp.com/bot' + token);
 }
 
-var matched = false;
-var questionMap = new Map(); // value -1 = need question, > 0 = need choice
-var editingMap = new Map();
-
-// Matches /start
 bot.onText(/\/start/, function(msg, match) {
     matched = true;
     start(msg.from.id);
 });
 
-// Matches /done
 bot.onText(/\/done/, function(msg, match) {
     matched = true;
     done(msg.from.id);
 });
 
-// Matches /polls
 bot.onText(/\/polls/, function(msg, match) {
     matched = true;
     polls(msg.from.id);
@@ -122,7 +95,7 @@ function start(userId) {
 }
 
 function addQuestion(userId, name, question) {
-    Question.create({
+    models.question.create({
         userId: userId,
         name: name,
         question: question
@@ -135,7 +108,7 @@ function addQuestion(userId, name, question) {
 }
 
 function addChoice(userId, questionId, choice) {
-    Choice.create({
+    models.choice.create({
         questionId: questionId,
         choice: choice
     }).then(function(result) {
@@ -148,7 +121,7 @@ function addChoice(userId, questionId, choice) {
 function done(userId) {
     var questionId = questionMap.get(userId);
     if (questionId > 0) { // currently creating a poll
-        Question.update({
+        models.question.update({
             isEnabled: 1
         }, {
             where: {
@@ -157,10 +130,10 @@ function done(userId) {
         }).then(function(result) {
             questionMap.delete(userId);
 
-            Question.findById(questionId, {
+            models.question.findById(questionId, {
                 include: [{
-                    model: Choice,
-                    include: [Vote]
+                    model: models.choice,
+                    include: [models.vote]
                 }]
             }).then(function(poll) {
                 opts = {
@@ -178,7 +151,7 @@ function done(userId) {
 }
 
 function inlineQuery(queryId, userId, query) {
-    Question.findAll({
+    models.question.findAll({
         where: {
             userId: userId,
             question: {
@@ -187,8 +160,8 @@ function inlineQuery(queryId, userId, query) {
             isEnabled: 1
         },
         include: [{
-            model: Choice,
-            include: [Vote]
+            model: models.choice,
+            include: [models.vote]
         }],
         order: [
             ['updatedAt', 'DESC']
@@ -216,14 +189,14 @@ function inlineQuery(queryId, userId, query) {
 }
 
 function vote(inlineMessageId, userId, name, questionId, choiceId) {
-    Question.findById(questionId, {
+    models.question.findById(questionId, {
         include: [{
-            model: Choice,
+            model: models.choice,
             where: {
                 id: choiceId
             },
             include: [{
-                model: Vote,
+                model: models.vote,
                 where: {
                     userId: userId
                 },
@@ -233,7 +206,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
     }).then(function(poll) {
         if (poll.isEnabled) {
             if (poll.choices[0].votes.length == 0) {
-                Vote.create({
+                models.vote.create({
                     choiceId: choiceId,
                     userId: userId,
                     name: name
@@ -241,7 +214,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                     updatePoll(0, 0, inlineMessageId, questionId, false);
                 });
             } else {
-                Vote.destroy({
+                models.vote.destroy({
                     where: {
                         choiceId: choiceId,
                         userId: userId,
@@ -257,10 +230,10 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
 }
 
 function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
-    Question.findById(questionId, {
+    models.question.findById(questionId, {
         include: [{
-            model: Choice,
-            include: [Vote]
+            model: models.choice,
+            include: [models.vote]
         }]
     }).then(function(poll) {
         var opts = {
@@ -288,7 +261,7 @@ function startEditingQuestion(userId, questionId) {
 }
 
 function editQuestion(userId, questionId, question) {
-    Question.update({
+    models.question.update({
         question: question
     }, {
         where: {
@@ -303,7 +276,7 @@ function editQuestion(userId, questionId, question) {
 }
 
 function deletePoll(chatId, messageId, questionId) {
-    Question.update({
+    models.question.update({
         isEnabled: 0
     }, {
         where: {
@@ -315,14 +288,14 @@ function deletePoll(chatId, messageId, questionId) {
 }
 
 function polls(userId) {
-    Question.findAll({
+    models.question.findAll({
         where: {
             userId: userId,
             isEnabled: 1
         },
         include: [{
-            model: Choice,
-            include: [Vote]
+            model: models.choice,
+            include: [models.vote]
         }]
     }).then(function(polls) {
         opts = {
