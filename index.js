@@ -189,7 +189,10 @@ function inlineQuery(queryId, userId, query) {
         include: [{
             model: Choice,
             include: [Vote]
-        }]
+        }],
+        order: [
+            ['updatedAt', 'DESC']
+        ]
     }).then(function(polls) {
         var reply = [];
         polls.map(function(poll) {
