@@ -260,7 +260,8 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
             include: [Vote]
         }],
         order: [
-            [Choice, 'id', 'ASC']
+            [Choice, 'id'],
+            [Choice, Vote, 'id']
         ]
     }).then(function(poll) {
         var opts = {
