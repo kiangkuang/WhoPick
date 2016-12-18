@@ -12,8 +12,9 @@ var models = require('./models');
 var TelegramBot = require('node-telegram-bot-api');
 var isLocal = process.env.NODE_ENV === 'local'
 var token = process.env.BOT_TOKEN;
-var questionMap = new Map(); // value == -1 = need question, > 0 = need choice
-var editingMap = new Map();
+var newQuestionMap = new Map(); // value == -1 = need question, > 0 = need choice
+var editQuestionMap = new Map();
+var editChoiceMap = new Map();
 
 if (isLocal) {
     var bot = new TelegramBot(token, {
@@ -72,14 +73,14 @@ bot.on('callback_query', function(msg) {
             break;
 
         case '/addChoices': // /addChoices questionId
-            // startAddingChoice(msg.from.id, commands[1])
+            startAddingChoices(msg.from.id, commands[1])
             break;
 
         case '/editChoices': // /editChoices questionId
             listChoices(msg.message.chat.id, msg.message.message_id, commands[1], 'edit');
             break;
         case '/editChoice': // /editChoice questionId choiceId
-            // startEditingChoice(msg.message.chat.id, msg.message.message_id, commands[1], commands[2]);
+            startEditingChoice(msg.from.id, commands[1], commands[2]);
             break;
 
         case '/deleteChoices': // /deleteChoices questionId
@@ -92,12 +93,12 @@ bot.on('callback_query', function(msg) {
 });
 
 function start(userId) {
-    questionMap.set(userId, -1);
+    newQuestionMap.set(userId, -1);
     bot.sendMessage(userId, 'Let\'s create a new poll. First, send me the question.');
 }
 
 function textInput(userId, name, text) {
-    var questionId = questionMap.get(userId);
+    var questionId = newQuestionMap.get(userId);
     if (questionId == -1) {
         addQuestion(userId, name, text);
         return;
@@ -107,9 +108,15 @@ function textInput(userId, name, text) {
         return;
     }
 
-    questionId = editingMap.get(userId);
+    questionId = editQuestionMap.get(userId);
     if (questionId) {
         editQuestion(userId, questionId, text);
+        return;
+    }
+
+    var choiceId = editChoiceMap.get(userId).choiceId;
+    if (choiceId) {
+        editChoice(userId, choiceId, text);
         return;
     }
 }
@@ -120,7 +127,7 @@ function addQuestion(userId, name, question) {
         name: name,
         question: question
     }).then(function(result) {
-        questionMap.set(userId, result.id);
+        newQuestionMap.set(userId, result.id);
         bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
             parse_mode: 'Markdown'
         });
@@ -132,14 +139,14 @@ function addChoice(userId, questionId, choice) {
         questionId: questionId,
         choice: choice
     }).then(function(result) {
-        bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish creating the poll.', choice), {
+        bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish up.', choice), {
             parse_mode: 'Markdown'
         });
     });
 }
 
 function done(userId) {
-    var questionId = questionMap.get(userId);
+    var questionId = newQuestionMap.get(userId) || editQuestionMap.get(userId) || editChoiceMap.get(userId).questionId;
     if (questionId > 0) { // currently creating a poll
         models.question.update({
             isEnabled: 1
@@ -148,7 +155,9 @@ function done(userId) {
                 id: questionId
             }
         }).then(function(result) {
-            questionMap.delete(userId);
+            newQuestionMap.delete(userId);
+            editQuestionMap.delete(userId);
+            editChoiceMap.delete(userId);
 
             models.question.findById(questionId, {
                 include: [{
@@ -161,12 +170,12 @@ function done(userId) {
                     reply_markup: getAdminInlineKeyboard(poll.question, poll.id)
                 }
 
-                var reply = 'Poll created. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
+                var reply = 'Done. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n';
                 bot.sendMessage(userId, reply + formatPoll(poll), opts);
             });
         });
     } else {
-        bot.sendMessage(userId, 'wtf u trying to do');
+        bot.sendMessage(userId, 'Try typing /start first to create a poll.');
     }
 }
 
@@ -297,8 +306,25 @@ function listChoices(chatId, messageId, questionId, type) {
 }
 
 function startEditingQuestion(userId, questionId) {
-    editingMap.set(userId, questionId);
-    bot.sendMessage(userId, '*Editing*\nPlease send me the new question.', {
+    editQuestionMap.set(userId, questionId);
+    bot.sendMessage(userId, '*Editing question*\nPlease send me the new question.', {
+        parse_mode: 'Markdown'
+    });
+}
+
+function startAddingChoices(userId, questionId) {
+    newQuestionMap.set(userId, questionId);
+    bot.sendMessage(userId, '*Adding options*\nPlease send me the new option.', {
+        parse_mode: 'Markdown'
+    });
+}
+
+function startEditingChoice(userId, questionId, choiceId) {
+    editChoiceMap.set(userId, {
+        questionId,
+        choiceId
+    });
+    bot.sendMessage(userId, '*Editing option*\nPlease send me the new option.', {
         parse_mode: 'Markdown'
     });
 }
@@ -311,10 +337,19 @@ function editQuestion(userId, questionId, question) {
             id: questionId
         }
     }).then(function(result) {
-        editingMap.delete(userId);
-        bot.sendMessage(userId, sprintf('Poll question edited to \'*%s*\'.\nUpdate or vote on the poll to see the change.', question), {
-            parse_mode: 'Markdown'
-        });
+        done(userId);
+    });
+}
+
+function editChoice(userId, choiceId, choice) {
+    models.choice.update({
+        choice: choice
+    }, {
+        where: {
+            id: choiceId
+        }
+    }).then(function(result) {
+        done(userId);
     });
 }
 
@@ -427,7 +462,7 @@ function getEditKeyboard(questionId) {
                 callback_data: '/editQuestion ' + questionId
             }],
             [{
-                text: 'Add option',
+                text: 'Add options',
                 callback_data: '/addChoices ' + questionId
             }],
             [{
