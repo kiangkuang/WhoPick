@@ -61,10 +61,32 @@ bot.on('callback_query', function(msg) {
             updatePoll(msg.message.chat.id, msg.message.message_id, 0, commands[1], false);
             break;
         case '/delete': // /delete questionId
-            deletePoll(msg.message.chat.id, msg.message.message_id, commands[1])
+            deletePoll(msg.message.chat.id, msg.message.message_id, commands[1]);
             break;
         case '/edit': // /edit questionId
+            edit(msg.message.chat.id, msg.message.message_id, commands[1]);
+            break;
+
+        case '/editQuestion': // /editQuestion questionId
             startEditingQuestion(msg.from.id, commands[1])
+            break;
+
+        case '/addChoices': // /addChoices questionId
+            // startAddingChoice(msg.from.id, commands[1])
+            break;
+
+        case '/editChoices': // /editChoices questionId
+            listChoices(msg.message.chat.id, msg.message.message_id, commands[1], 'edit');
+            break;
+        case '/editChoice': // /editChoice questionId choiceId
+            // startEditingChoice(msg.message.chat.id, msg.message.message_id, commands[1], commands[2]);
+            break;
+
+        case '/deleteChoices': // /deleteChoices questionId
+            listChoices(msg.message.chat.id, msg.message.message_id, commands[1], 'delete');
+            break;
+        case '/deleteChoice': // /deleteChoice questionId choiceId
+            deleteChoice(msg.message.chat.id, msg.message.message_id, commands[1], commands[2]);
             break;
     }
 });
@@ -76,17 +98,19 @@ function start(userId) {
 
 function textInput(userId, name, text) {
     var questionId = questionMap.get(userId);
-    var editingId = editingMap.get(userId);
-
-    if (editingId) {
-        editQuestion(userId, editingId, text);
+    if (questionId == -1) {
+        addQuestion(userId, name, text);
+        return;
+    }
+    if (questionId > 0) {
+        addChoice(userId, questionId, text);
         return;
     }
 
-    if (questionId == -1) {
-        addQuestion(userId, name, text);
-    } else if (questionId > 0) {
-        addChoice(userId, questionId, text);
+    questionId = editingMap.get(userId);
+    if (questionId) {
+        editQuestion(userId, questionId, text);
+        return;
     }
 }
 
@@ -249,6 +273,29 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
     });
 }
 
+function edit(chatId, messageId, questionId) {
+    var opts = {
+        chat_id: chatId,
+        message_id: messageId
+    };
+    bot.editMessageReplyMarkup(getEditKeyboard(questionId), opts);
+}
+
+function listChoices(chatId, messageId, questionId, type) {
+    console.log(type);
+    models.choice.findAll({
+        where: {
+            questionId: questionId
+        }
+    }).then(function(choices) {
+        var opts = {
+            chat_id: chatId,
+            message_id: messageId
+        }
+        bot.editMessageReplyMarkup(getListChoicesKeyboard(questionId, choices, type), opts);
+    });
+}
+
 function startEditingQuestion(userId, questionId) {
     editingMap.set(userId, questionId);
     bot.sendMessage(userId, '*Editing*\nPlease send me the new question.', {
@@ -268,6 +315,16 @@ function editQuestion(userId, questionId, question) {
         bot.sendMessage(userId, sprintf('Poll question edited to \'*%s*\'.\nUpdate or vote on the poll to see the change.', question), {
             parse_mode: 'Markdown'
         });
+    });
+}
+
+function deleteChoice(chatId, messageId, questionId, choiceId) {
+    models.choice.destroy({
+        where: {
+            id: choiceId
+        }
+    }).then(function() {
+        updatePoll(chatId, messageId, 0, questionId, false);
     });
 }
 
@@ -351,12 +408,39 @@ function getAdminInlineKeyboard(question, questionId) {
                 callback_data: '/update ' + questionId
             }],
             [{
-                text: 'Edit question',
+                text: 'Edit poll',
                 callback_data: '/edit ' + questionId
             }],
             [{
                 text: 'Close poll',
                 callback_data: '/delete ' + questionId
+            }]
+        ]
+    };
+}
+
+function getEditKeyboard(questionId) {
+    return {
+        inline_keyboard: [
+            [{
+                text: 'Edit question',
+                callback_data: '/editQuestion ' + questionId
+            }],
+            [{
+                text: 'Add option',
+                callback_data: '/addChoices ' + questionId
+            }],
+            [{
+                text: 'Edit option',
+                callback_data: '/editChoices ' + questionId
+            }],
+            [{
+                text: 'Remove option',
+                callback_data: '/deleteChoices ' + questionId
+            }],
+            [{
+                text: 'Back',
+                callback_data: '/update ' + questionId
             }]
         ]
     };
@@ -370,6 +454,24 @@ function getPollClosedInlineKeyboard() {
                 callback_data: '0'
             }]
         ]
+    };
+}
+
+function getListChoicesKeyboard(questionId, choices, type) {
+    var result = choices.map(function(choice) {
+        return [{
+            text: choice.choice,
+            callback_data: sprintf('/%sChoice %d %d', type, questionId, choice.id)
+        }];
+    });
+
+    result.push([{
+        text: 'Back',
+        callback_data: '/update ' + questionId
+    }]);
+
+    return {
+        inline_keyboard: result
     };
 }
 
