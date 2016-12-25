@@ -6,7 +6,11 @@ var Sequelize = require('sequelize');
 var basename = path.basename(module.filename);
 var db = {};
 
-var sequelize = new Sequelize(process.env.DB_URL);
+var sequelize = new Sequelize(process.env.DB_URL, {
+    dialectOptions: {
+        charset: 'utf8mb4'
+    }
+});
 
 fs
     .readdirSync(__dirname)
