@@ -32,7 +32,7 @@ if (isLocal) {
 
 // Matches all
 bot.onText(/(.*)/, function(msg, match) {
-    switch (match[0].split(' ')[0]) {
+    switch (msg.text.split(' ')[0]) {
         case '/start':
             start(msg.from.id);
             return;
@@ -43,7 +43,7 @@ bot.onText(/(.*)/, function(msg, match) {
             polls(msg.from.id);
             return;
         default:
-            textInput(msg.from.id, msg.from.first_name, match[0]);
+            textInput(msg.from.id, msg.from.first_name, msg.text);
             return;
     }
 });
@@ -128,7 +128,7 @@ function addQuestion(userId, name, question) {
         question: question
     }).then(function(result) {
         newQuestionMap.set(userId, result.id);
-        bot.sendMessage(userId, sprintf('Creating a new poll: \'*%s*\'\n\nPlease send me the first answer option.', question), {
+        bot.sendMessage(userId, sprintf('Creating a new poll:\n*%s*\n\nPlease send me the first answer option.', question), {
             parse_mode: 'Markdown'
         });
     });
@@ -139,7 +139,7 @@ function addChoice(userId, questionId, choice) {
         questionId: questionId,
         choice: choice
     }).then(function(result) {
-        bot.sendMessage(userId, sprintf('Added option: \'*%s*\'\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish up.', choice), {
+        bot.sendMessage(userId, sprintf('Added option:\n*%s*\n\nNow send me another answer option.\nWhen you\'ve added enough, simply send /done to finish up.', choice), {
             parse_mode: 'Markdown'
         });
     });
