@@ -212,7 +212,7 @@ function inlineQuery(queryId, userId, query) {
         bot.answerInlineQuery(queryId, reply, {
             cache_time: 0,
             switch_pm_text: 'Create new poll',
-            switch_pm_parameter: '',
+            switch_pm_parameter: 'x',
             is_personal: true
         });
     });
