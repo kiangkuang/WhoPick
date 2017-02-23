@@ -108,16 +108,19 @@ function textInput(userId, name, text) {
         return;
     }
 
-    questionId = editQuestionMap.get(userId);
+    var questionId = editQuestionMap.get(userId);
     if (questionId) {
         editQuestion(userId, questionId, text);
         return;
     }
 
-    var choiceId = editChoiceMap.get(userId).choiceId;
-    if (choiceId) {
-        editChoice(userId, choiceId, text);
-        return;
+    var editChoiceObj = editChoiceMap.get(userId)
+    if (editChoiceObj) {
+        var choiceId = editChoiceObj.choiceId;
+        if (choiceId) {
+            editChoice(userId, choiceId, text);
+            return;
+        }
     }
 }
 
