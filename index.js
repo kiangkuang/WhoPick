@@ -165,6 +165,11 @@ function textInput(userId, name, text) {
             return;
         }
     }
+
+    bot.sendMessage(
+        userId,
+        "Sorry I didn't get what you mean. Try sending /start to create a new poll!"
+    );
 }
 
 function addQuestion(userId, name, question) {
