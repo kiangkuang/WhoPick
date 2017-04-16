@@ -1,7 +1,3 @@
-require("dotenv").config({
-    silent: process.env.NODE_ENV != undefined
-});
-
 if (
     !process.env.BOT_TOKEN ||
     process.env.BOT_TOKEN === "<token>" ||
@@ -11,7 +7,6 @@ if (
     throw "ERROR: env variables not set.";
 }
 
-var sprintf = require("sprintf-js").sprintf;
 var models = require("./models");
 var TelegramBot = require("node-telegram-bot-api");
 var isLocal = process.env.NODE_ENV === "local";
@@ -32,7 +27,7 @@ if (isLocal) {
         }
     });
     bot.setWebHook(
-        "https://" + process.env.HEROKU_APP_NAME + ".herokuapp.com/bot" + token
+        `https://${process.env.HEROKU_APP_NAME}.herokuapp.com/bot${token}`
     );
 }
 
@@ -183,10 +178,7 @@ function addQuestion(userId, name, question) {
             newQuestionMap.set(userId, result.id);
             bot.sendMessage(
                 userId,
-                sprintf(
-                    "Creating a new poll:\n*%s*\n\nPlease send me the first answer option.",
-                    question
-                ),
+                `Creating a new poll:\n*${question}*\n\nPlease send me the first answer option.`,
                 {
                     parse_mode: "Markdown"
                 }
@@ -203,10 +195,7 @@ function addChoice(userId, questionId, choice) {
         .then(function(result) {
             bot.sendMessage(
                 userId,
-                sprintf(
-                    "Added option:\n*%s*\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.",
-                    choice
-                ),
+                `Added option:\n*${choice}*\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
                 {
                     parse_mode: "Markdown"
                 }
@@ -271,7 +260,7 @@ function inlineQuery(queryId, userId, query) {
             where: {
                 userId: userId,
                 question: {
-                    like: "%" + query + "%"
+                    like: `%${query}%`
                 },
                 isEnabled: 1
             },
@@ -554,13 +543,13 @@ function polls(userId) {
 }
 
 function formatPoll(poll) {
-    result = sprintf("*%s*\n", poll.question);
+    result = `*${poll.question}*`;
 
     poll.choices.forEach(function(choice) {
-        result += sprintf("\n_%s_\n", choice.choice);
+        result += `\n\n_${choice.choice}_`;
 
         choice.votes.forEach(function(vote, i) {
-            result += sprintf("%d) %s\n", i + 1, vote.name);
+            result += `\n    ${i + 1}) ${vote.name}`;
         });
     });
     return result;
@@ -571,7 +560,7 @@ function getInlineKeyboard(poll) {
         return [
             {
                 text: choice.choice,
-                callback_data: "/vote " + poll.id + " " + choice.id
+                callback_data: `/vote ${poll.id} ${choice.id}`
             }
         ];
     });
@@ -585,7 +574,7 @@ function getPollsInlineKeyboard(polls) {
         return [
             {
                 text: poll.question,
-                callback_data: "/update " + poll.id
+                callback_data: `/update ${poll.id}`
             }
         ];
     });
@@ -606,19 +595,19 @@ function getAdminInlineKeyboard(question, questionId) {
             [
                 {
                     text: "Update results",
-                    callback_data: "/update " + questionId
+                    callback_data: `/update ${questionId}`
                 }
             ],
             [
                 {
                     text: "Edit poll",
-                    callback_data: "/edit " + questionId
+                    callback_data: `/edit ${questionId}`
                 }
             ],
             [
                 {
                     text: "Close poll",
-                    callback_data: "/delete " + questionId
+                    callback_data: `/delete ${questionId}`
                 }
             ]
         ]
@@ -631,31 +620,31 @@ function getEditKeyboard(questionId) {
             [
                 {
                     text: "Edit question",
-                    callback_data: "/editQuestion " + questionId
+                    callback_data: `/editQuestion ${questionId}`
                 }
             ],
             [
                 {
                     text: "Add options",
-                    callback_data: "/addChoices " + questionId
+                    callback_data: `/addChoices ${questionId}`
                 }
             ],
             [
                 {
                     text: "Edit option",
-                    callback_data: "/editChoices " + questionId
+                    callback_data: `/editChoices ${questionId}`
                 }
             ],
             [
                 {
                     text: "Remove option",
-                    callback_data: "/deleteChoices " + questionId
+                    callback_data: `/deleteChoices ${questionId}`
                 }
             ],
             [
                 {
                     text: "Back",
-                    callback_data: "/update " + questionId
+                    callback_data: `/update ${questionId}`
                 }
             ]
         ]
@@ -680,12 +669,7 @@ function getListChoicesKeyboard(questionId, choices, type) {
         return [
             {
                 text: choice.choice,
-                callback_data: sprintf(
-                    "/%sChoice %d %d",
-                    type,
-                    questionId,
-                    choice.id
-                )
+                callback_data: `/${type}Choice ${questionId} ${choice.id}`
             }
         ];
     });
