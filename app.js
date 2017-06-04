@@ -393,7 +393,7 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
                     : getInlineKeyboard(poll);
             }
 
-            bot.editMessageText(formatPoll(poll), opts);
+            bot.editMessageText(appendHashtag(formatPoll(poll)), opts);
         });
 }
 
