@@ -286,7 +286,7 @@ function inlineQuery(queryId, userId, query) {
                     type: "article",
                     title: poll.question,
                     description: getDescription(poll),
-                    message_text: formatPoll(poll),
+                    message_text: appendHashtag(formatPoll(poll)),
                     reply_markup: getInlineKeyboard(poll)
                 });
             });
@@ -697,4 +697,8 @@ function getDescription(poll) {
             return choice.choice;
         })
         .join(", ");
+}
+
+function appendHashtag(str) {
+    return `${str}\n\n#WhoPick`;
 }
