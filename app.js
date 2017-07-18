@@ -69,6 +69,8 @@ bot.on("callback_query", function(msg) {
             );
             break;
 
+        case "/update": // /update questionId, for backward compatibility
+
         case "/refreshAdmin": // /refreshAdmin questionId
             updatePoll(
                 msg.message.chat.id,
