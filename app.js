@@ -69,7 +69,7 @@ bot.on("callback_query", function(msg) {
             );
             break;
 
-        case "/update": // /update questionId
+        case "/refreshAdmin": // /refreshAdmin questionId
             updatePoll(
                 msg.message.chat.id,
                 msg.message.message_id,
@@ -77,6 +77,10 @@ bot.on("callback_query", function(msg) {
                 commands[1],
                 false
             );
+            break;
+
+        case "/refresh": // /refresh questionId
+            updatePoll(0, 0, msg.inline_message_id, commands[1], false);
             break;
 
         case "/delete": // /delete questionId
@@ -566,6 +570,12 @@ function getInlineKeyboard(poll) {
             }
         ];
     });
+    result.push([
+        {
+            text: "🔄 Refresh",
+            callback_data: `/refresh ${poll.id}`
+        }
+    ]);
     return {
         inline_keyboard: result
     };
@@ -576,7 +586,7 @@ function getPollsInlineKeyboard(polls) {
         return [
             {
                 text: poll.question,
-                callback_data: `/update ${poll.id}`
+                callback_data: `/refreshAdmin ${poll.id}`
             }
         ];
     });
@@ -590,25 +600,25 @@ function getAdminInlineKeyboard(question, questionId) {
         inline_keyboard: [
             [
                 {
-                    text: "Share poll",
+                    text: "💬 Share poll",
                     switch_inline_query: question
                 }
             ],
             [
                 {
-                    text: "Update results",
-                    callback_data: `/update ${questionId}`
+                    text: "🔄 Refresh",
+                    callback_data: `/refreshAdmin ${questionId}`
                 }
             ],
             [
                 {
-                    text: "Edit poll",
+                    text: "📝 Edit poll",
                     callback_data: `/edit ${questionId}`
                 }
             ],
             [
                 {
-                    text: "Close poll",
+                    text: "🚫 Close poll",
                     callback_data: `/delete ${questionId}`
                 }
             ]
@@ -621,32 +631,32 @@ function getEditKeyboard(questionId) {
         inline_keyboard: [
             [
                 {
-                    text: "Edit question",
+                    text: "📝 Edit question",
                     callback_data: `/editQuestion ${questionId}`
                 }
             ],
             [
                 {
-                    text: "Add options",
-                    callback_data: `/addChoices ${questionId}`
-                }
-            ],
-            [
-                {
-                    text: "Edit option",
+                    text: "📝 Edit options",
                     callback_data: `/editChoices ${questionId}`
                 }
             ],
             [
                 {
-                    text: "Remove option",
+                    text: "➕ Add options",
+                    callback_data: `/addChoices ${questionId}`
+                }
+            ],
+            [
+                {
+                    text: "➖ Remove options",
                     callback_data: `/deleteChoices ${questionId}`
                 }
             ],
             [
                 {
-                    text: "Back",
-                    callback_data: `/update ${questionId}`
+                    text: "⬅ Back",
+                    callback_data: `/refreshAdmin ${questionId}`
                 }
             ]
         ]
@@ -658,7 +668,7 @@ function getPollClosedInlineKeyboard() {
         inline_keyboard: [
             [
                 {
-                    text: "Poll Closed",
+                    text: "🚫 Poll Closed",
                     callback_data: "0"
                 }
             ]
@@ -678,8 +688,8 @@ function getListChoicesKeyboard(questionId, choices, type) {
 
     result.push([
         {
-            text: "Back",
-            callback_data: "/update " + questionId
+            text: "⬅ Back",
+            callback_data: "/refreshAdmin " + questionId
         }
     ]);
 
