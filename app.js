@@ -238,8 +238,7 @@ function done(userId) {
                                 model: models.choice,
                                 include: [models.vote]
                             }
-                        ],
-                        group: "`choices`.`id`, `choices.votes`.`userId`"
+                        ]
                     })
                     .then(function(poll) {
                         opts = {
@@ -276,8 +275,8 @@ function inlineQuery(queryId, userId, query) {
                     include: [models.vote]
                 }
             ],
-            group: "`choices`.`id`, `choices.votes`.`userId`",
-            order: [["updatedAt", "DESC"]]
+            group: "`choices.id`, `choices.votes.userId`",
+            order: "`updatedAt` DESC, `choices.id`, `choices.votes.id`"
         })
         .then(function(polls) {
             var reply = [];
@@ -321,8 +320,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                         }
                     ]
                 }
-            ],
-            group: "`choices`.`id`, `choices.votes`.`userId`"
+            ]
         })
         .then(function(poll) {
             if (poll.isEnabled) {
@@ -375,7 +373,8 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
                     include: [models.vote]
                 }
             ],
-            group: "`choices`.`id`, `choices.votes`.`userId`"
+            group: "`choices.id`, `choices.votes.userId`",
+            order: "`choices.id`, `choices.votes.id`"
         })
         .then(function(poll) {
             var opts = {
