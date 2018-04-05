@@ -47,7 +47,7 @@ bot.onText(/(.*)/, function(msg, match) {
             return;
 
         default:
-            textInput(msg.from.id, msg.from.first_name, msg.text);
+            textInput(msg.from.id, formatName(msg.from.first_name, msg.from.last_name), msg.text);
             return;
     }
 });
@@ -63,7 +63,7 @@ bot.on("callback_query", function(msg) {
             vote(
                 msg.inline_message_id,
                 msg.from.id,
-                prettifyName(msg.from.first_name, msg.from.last_name),
+                formatName(msg.from.first_name, msg.from.last_name),
                 commands[1],
                 commands[2]
             );
@@ -712,8 +712,8 @@ function appendHashtag(str) {
     return `${str}\n\n#WhoPick`;
 }
 
-function prettifyName(first, last) {
-    if (first && last) {
+function formatName(first, last) {
+    if (last) {
         return `${first} ${last}`;
     }
     return first;
