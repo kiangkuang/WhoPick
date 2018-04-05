@@ -63,7 +63,7 @@ bot.on("callback_query", function(msg) {
             vote(
                 msg.inline_message_id,
                 msg.from.id,
-                msg.from.first_name,
+                prettifyName(msg.from.first_name, msg.from.last_name),
                 commands[1],
                 commands[2]
             );
@@ -710,4 +710,11 @@ function getDescription(poll) {
 
 function appendHashtag(str) {
     return `${str}\n\n#WhoPick`;
+}
+
+function prettifyName(first, last) {
+    if (first && last) {
+        return `${first} ${last}`;
+    }
+    return first;
 }
