@@ -1,3 +1,7 @@
+import models from "./models/index";
+import Repo from "./repository";
+import TelegramBot from "node-telegram-bot-api";
+
 if (
     !process.env.BOT_TOKEN ||
     process.env.BOT_TOKEN === "<token>" ||
@@ -6,33 +10,32 @@ if (
 ) {
     throw "ERROR: env variables not set.";
 }
+const isLocal = process.env.NODE_ENV === "local";
+const token = process.env.BOT_TOKEN;
+const port = process.env.PORT;
+const herokuAppName = process.env.HEROKU_APP_NAME;
 
-var models = require("./models");
-var TelegramBot = require("node-telegram-bot-api");
-var isLocal = process.env.NODE_ENV === "local";
-var token = process.env.BOT_TOKEN;
-var newQuestionMap = new Map(); // value == -1 = need question, > 0 = need choice
-var editQuestionMap = new Map();
-var editChoiceMap = new Map();
+const newQuestionMap = new Map(); // value == -1 = need question, > 0 = need choice
+const editQuestionMap = new Map();
+const editChoiceMap = new Map();
 
+let bot;
 if (isLocal) {
-    var bot = new TelegramBot(token, {
+    bot = new TelegramBot(token, {
         polling: true
     });
 } else {
-    var bot = new TelegramBot(token, {
+    bot = new TelegramBot(token, {
         webHook: {
-            port: process.env.PORT,
+            port: port,
             host: "0.0.0.0"
         }
     });
-    bot.setWebHook(
-        `https://${process.env.HEROKU_APP_NAME}.herokuapp.com/bot${token}`
-    );
+    bot.setWebHook(`https://${herokuAppName}.herokuapp.com/bot${token}`);
 }
 
 // Matches all
-bot.onText(/(.*)/, function(msg, match) {
+bot.onText(/(.*)/, (msg, match) => {
     switch (msg.text.split(" ")[0]) {
         case "/start":
             start(msg.from.id);
@@ -47,17 +50,21 @@ bot.onText(/(.*)/, function(msg, match) {
             return;
 
         default:
-            textInput(msg.from.id, formatName(msg.from.first_name, msg.from.last_name), msg.text);
+            textInput(
+                msg.from.id,
+                formatName(msg.from.first_name, msg.from.last_name),
+                msg.text
+            );
             return;
     }
 });
 
-bot.on("inline_query", function(msg) {
+bot.on("inline_query", msg => {
     inlineQuery(msg.id, msg.from.id, msg.query);
 });
 
-bot.on("callback_query", function(msg) {
-    var commands = msg.data.split(" ");
+bot.on("callback_query", msg => {
+    const commands = msg.data.split(" ");
     switch (commands[0]) {
         case "/vote": // /vote questionId choiceId
             vote(
@@ -163,9 +170,9 @@ function textInput(userId, name, text) {
         return;
     }
 
-    var editChoiceObj = editChoiceMap.get(userId);
+    const editChoiceObj = editChoiceMap.get(userId);
     if (editChoiceObj) {
-        var choiceId = editChoiceObj.choiceId;
+        const choiceId = editChoiceObj.choiceId;
         if (choiceId) {
             editChoice(userId, choiceId, text);
             return;
@@ -179,87 +186,53 @@ function textInput(userId, name, text) {
 }
 
 function addQuestion(userId, name, question) {
-    models.question
-        .create({
-            userId: userId,
-            name: name,
-            question: question
-        })
-        .then(function(result) {
-            newQuestionMap.set(userId, result.id);
-            bot.sendMessage(
-                userId,
-                `Creating a new poll:\n*${question}*\n\nPlease send me the first answer option.`,
-                {
-                    parse_mode: "Markdown"
-                }
-            );
-        });
+    Repo.addQuestion(userId, name, question).then(result => {
+        newQuestionMap.set(userId, result.id);
+        bot.sendMessage(
+            userId,
+            `Creating a new poll:\n*${question}*\n\nPlease send me the first answer option.`,
+            {
+                parse_mode: "Markdown"
+            }
+        );
+    });
 }
 
 function addChoice(userId, questionId, choice) {
-    models.choice
-        .create({
-            questionId: questionId,
-            choice: choice
-        })
-        .then(function(result) {
-            bot.sendMessage(
-                userId,
-                `Added option:\n*${choice}*\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
-                {
-                    parse_mode: "Markdown"
-                }
-            );
-        });
+    Repo.addChoice(questionId, choice).then(() => {
+        bot.sendMessage(
+            userId,
+            `Added option:\n*${choice}*\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
+            {
+                parse_mode: "Markdown"
+            }
+        );
+    });
 }
 
 function done(userId) {
-    var questionId =
+    const questionId =
         newQuestionMap.get(userId) ||
         editQuestionMap.get(userId) ||
-        editChoiceMap.get(userId).questionId;
+        (editChoiceMap.get(userId) && editChoiceMap.get(userId).questionId);
     if (questionId > 0) {
         // currently creating a poll
-        models.question
-            .update(
-                {
-                    isEnabled: 1
-                },
-                {
-                    where: {
-                        id: questionId
-                    }
-                }
-            )
-            .then(function(result) {
-                newQuestionMap.delete(userId);
-                editQuestionMap.delete(userId);
-                editChoiceMap.delete(userId);
+        Repo.updateQuestion(questionId, { isEnabled: 1 }).then(() => {
+            newQuestionMap.delete(userId);
+            editQuestionMap.delete(userId);
+            editChoiceMap.delete(userId);
 
-                models.question
-                    .findById(questionId, {
-                        include: [
-                            {
-                                model: models.choice,
-                                include: [models.vote]
-                            }
-                        ]
-                    })
-                    .then(function(poll) {
-                        opts = {
-                            parse_mode: "Markdown",
-                            reply_markup: getAdminInlineKeyboard(
-                                poll.question,
-                                poll.id
-                            )
-                        };
+            Repo.getQuestion(questionId).then(poll => {
+                const opts = {
+                    parse_mode: "Markdown",
+                    reply_markup: getAdminInlineKeyboard(poll.question, poll.id)
+                };
 
-                        var reply =
-                            "Done. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n";
-                        bot.sendMessage(userId, reply + formatPoll(poll), opts);
-                    });
+                const reply =
+                    "Done. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n";
+                bot.sendMessage(userId, reply + formatPoll(poll), opts);
             });
+        });
     } else {
         bot.sendMessage(userId, "Try typing /start first to create a poll.");
     }
@@ -284,9 +257,9 @@ function inlineQuery(queryId, userId, query) {
             group: "`choices.id`, `choices.votes.userId`",
             order: "`updatedAt` DESC, `choices.id`, `choices.votes.id`"
         })
-        .then(function(polls) {
-            var reply = [];
-            polls.map(function(poll) {
+        .then(polls => {
+            const reply = [];
+            polls.map(poll => {
                 reply.push({
                     parse_mode: "Markdown",
                     id: poll.id.toString(),
@@ -328,7 +301,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                 }
             ]
         })
-        .then(function(poll) {
+        .then(poll => {
             if (poll.isEnabled) {
                 if (poll.choices[0].votes.length == 0) {
                     models.vote
@@ -337,7 +310,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                             userId: userId,
                             name: name
                         })
-                        .then(function(result) {
+                        .then(() => {
                             updatePoll(
                                 0,
                                 0,
@@ -354,7 +327,7 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                                 userId: userId
                             }
                         })
-                        .then(function(result) {
+                        .then(() => {
                             updatePoll(
                                 0,
                                 0,
@@ -382,8 +355,8 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
             group: "`choices.id`, `choices.votes.userId`",
             order: "`choices.id`, `choices.votes.id`"
         })
-        .then(function(poll) {
-            var opts = {
+        .then(poll => {
+            const opts = {
                 parse_mode: "Markdown",
                 reply_markup: isClosed
                     ? getPollClosedInlineKeyboard()
@@ -407,7 +380,7 @@ function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
 }
 
 function edit(chatId, messageId, questionId) {
-    var opts = {
+    const opts = {
         chat_id: chatId,
         message_id: messageId
     };
@@ -415,15 +388,14 @@ function edit(chatId, messageId, questionId) {
 }
 
 function listChoices(chatId, messageId, questionId, type) {
-    console.log(type);
     models.choice
         .findAll({
             where: {
                 questionId: questionId
             }
         })
-        .then(function(choices) {
-            var opts = {
+        .then(choices => {
+            const opts = {
                 chat_id: chatId,
                 message_id: messageId
             };
@@ -471,20 +443,9 @@ function startEditingChoice(userId, questionId, choiceId) {
 }
 
 function editQuestion(userId, questionId, question) {
-    models.question
-        .update(
-            {
-                question: question
-            },
-            {
-                where: {
-                    id: questionId
-                }
-            }
-        )
-        .then(function(result) {
-            done(userId);
-        });
+    Repo.updateQuestion(questionId, { question: question }).then(() => {
+        done(userId);
+    });
 }
 
 function editChoice(userId, choiceId, choice) {
@@ -499,7 +460,7 @@ function editChoice(userId, choiceId, choice) {
                 }
             }
         )
-        .then(function(result) {
+        .then(() => {
             done(userId);
         });
 }
@@ -511,26 +472,15 @@ function deleteChoice(chatId, messageId, questionId, choiceId) {
                 id: choiceId
             }
         })
-        .then(function() {
+        .then(() => {
             updatePoll(chatId, messageId, 0, questionId, false);
         });
 }
 
 function deletePoll(chatId, messageId, questionId) {
-    models.question
-        .update(
-            {
-                isEnabled: 0
-            },
-            {
-                where: {
-                    id: questionId
-                }
-            }
-        )
-        .then(function(result) {
-            updatePoll(chatId, messageId, 0, questionId, true);
-        });
+    Repo.updateQuestion(questionId, { isEnabled: 0 }).then(() => {
+        updatePoll(chatId, messageId, 0, questionId, true);
+    });
 }
 
 function polls(userId) {
@@ -541,8 +491,8 @@ function polls(userId) {
                 isEnabled: 1
             }
         })
-        .then(function(polls) {
-            opts = {
+        .then(polls => {
+            const opts = {
                 parse_mode: "Markdown",
                 reply_markup: getPollsInlineKeyboard(polls)
             };
@@ -551,12 +501,12 @@ function polls(userId) {
 }
 
 function formatPoll(poll) {
-    result = `*${poll.question}*`;
+    let result = `*${poll.question}*`;
 
-    poll.choices.forEach(function(choice) {
+    poll.choices.forEach(choice => {
         result += `\n\n_${choice.choice}_`;
 
-        choice.votes.forEach(function(vote, i) {
+        choice.votes.forEach((vote, i) => {
             result += `\n    ${i + 1}) ${vote.name}`;
         });
     });
@@ -564,14 +514,12 @@ function formatPoll(poll) {
 }
 
 function getInlineKeyboard(poll) {
-    var result = poll.choices.map(function(choice) {
-        return [
-            {
-                text: choice.choice,
-                callback_data: `/vote ${poll.id} ${choice.id}`
-            }
-        ];
-    });
+    const result = poll.choices.map(choice => [
+        {
+            text: choice.choice,
+            callback_data: `/vote ${poll.id} ${choice.id}`
+        }
+    ]);
     result.push([
         {
             text: "🔄 Refresh",
@@ -584,14 +532,12 @@ function getInlineKeyboard(poll) {
 }
 
 function getPollsInlineKeyboard(polls) {
-    var result = polls.map(function(poll) {
-        return [
-            {
-                text: poll.question,
-                callback_data: `/refreshAdmin ${poll.id}`
-            }
-        ];
-    });
+    const result = polls.map(poll => [
+        {
+            text: poll.question,
+            callback_data: `/refreshAdmin ${poll.id}`
+        }
+    ]);
     return {
         inline_keyboard: result
     };
@@ -679,14 +625,12 @@ function getPollClosedInlineKeyboard() {
 }
 
 function getListChoicesKeyboard(questionId, choices, type) {
-    var result = choices.map(function(choice) {
-        return [
-            {
-                text: choice.choice,
-                callback_data: `/${type}Choice ${questionId} ${choice.id}`
-            }
-        ];
-    });
+    const result = choices.map(choice => [
+        {
+            text: choice.choice,
+            callback_data: `/${type}Choice ${questionId} ${choice.id}`
+        }
+    ]);
 
     result.push([
         {
@@ -701,11 +645,7 @@ function getListChoicesKeyboard(questionId, choices, type) {
 }
 
 function getDescription(poll) {
-    return poll.choices
-        .map(function(choice) {
-            return choice.choice;
-        })
-        .join(", ");
+    return poll.choices.map(choice => choice.choice).join(", ");
 }
 
 function appendHashtag(str) {

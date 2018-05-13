@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
+    "bluebird": "^3.5.1",
     "dotenv": "^2.0.0",
     "mysql": "^2.12.0",
     "node-telegram-bot-api": "^0.24.0",
@@ -11,13 +12,16 @@
     "sequelize-cli": "^2.4.0"
   },
   "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-preset-env": "^1.7.0",
     "husky": "^0.13.3",
     "lint-staged": "^3.4.0",
     "prettier": "^1.1.0"
   },
   "scripts": {
     "setup": "cp -n .env.example .env",
-    "start": "node -r dotenv/config app.js",
+    "build": "rm -rf dist && babel src -d dist -s",
+    "start": "npm run build && node -r dotenv/config dist/app.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "precommit": "lint-staged"
   },
