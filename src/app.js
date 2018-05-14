@@ -1,5 +1,5 @@
-import models from "./models/index";
 import Repo from "./repository";
+import Poll from "./poll";
 import TelegramBot from "node-telegram-bot-api";
 
 if (
@@ -83,13 +83,12 @@ bot.on("callback_query", msg => {
                 msg.message.chat.id,
                 msg.message.message_id,
                 0,
-                commands[1],
-                false
+                commands[1]
             );
             break;
 
         case "/refresh": // /refresh questionId
-            updatePoll(0, 0, msg.inline_message_id, commands[1], false);
+            updatePoll(0, 0, msg.inline_message_id, commands[1]);
             break;
 
         case "/delete": // /delete questionId
@@ -154,8 +153,8 @@ function start(userId) {
 }
 
 function textInput(userId, name, text) {
-    var questionId = newQuestionMap.get(userId);
-    if (questionId == -1) {
+    let questionId = newQuestionMap.get(userId);
+    if (questionId === -1) {
         addQuestion(userId, name, text);
         return;
     }
@@ -164,7 +163,7 @@ function textInput(userId, name, text) {
         return;
     }
 
-    var questionId = editQuestionMap.get(userId);
+    questionId = editQuestionMap.get(userId);
     if (questionId) {
         editQuestion(userId, questionId, text);
         return;
@@ -225,7 +224,7 @@ function done(userId) {
             Repo.getQuestion(questionId).then(poll => {
                 const opts = {
                     parse_mode: "Markdown",
-                    reply_markup: getAdminInlineKeyboard(poll.question, poll.id)
+                    reply_markup: new Poll(poll).getInlineKeyboard(true)
                 };
 
                 const reply =
@@ -255,7 +254,7 @@ function inlineQuery(queryId, userId, query) {
                 title: poll.question,
                 description: getDescription(poll),
                 message_text: appendHashtag(formatPoll(poll)),
-                reply_markup: getInlineKeyboard(poll)
+                reply_markup: new Poll(poll).getInlineKeyboard()
             });
         });
 
@@ -276,36 +275,31 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                     Repo.removeVote(choiceId, userId);
                 })
                 .finally(() => {
-                    updatePoll(0, 0, inlineMessageId, questionId, false);
+                    updatePoll(0, 0, inlineMessageId, questionId);
                 });
         } else {
-            updatePoll(0, 0, inlineMessageId, questionId, true);
+            updatePoll(0, 0, inlineMessageId, questionId);
         }
     });
 }
 
-function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
-    Repo.getQuestion(questionId).then(poll => {
+function updatePoll(chatId, messageId, inlineMessageId, questionId) {
+    Repo.getQuestion(questionId).then(p => {
+        const poll = new Poll(p);
         const opts = {
             parse_mode: "Markdown",
-            reply_markup: isClosed
-                ? getPollClosedInlineKeyboard()
-                : getInlineKeyboard(poll)
+            reply_markup: poll.getInlineKeyboard()
         };
         if (chatId) {
             opts.chat_id = chatId;
             opts.message_id = messageId;
-            opts.reply_markup = isClosed
-                ? getPollClosedInlineKeyboard()
-                : getAdminInlineKeyboard(poll.question, questionId);
+            opts.reply_markup = poll.getInlineKeyboard(true);
         } else if (inlineMessageId) {
             opts.inline_message_id = inlineMessageId;
-            opts.reply_markup = isClosed
-                ? getPollClosedInlineKeyboard()
-                : getInlineKeyboard(poll);
+            opts.reply_markup = poll.getInlineKeyboard();
         }
 
-        bot.editMessageText(appendHashtag(formatPoll(poll)), opts);
+        bot.editMessageText(appendHashtag(formatPoll(p)), opts);
     });
 }
 
@@ -380,13 +374,13 @@ function editChoice(userId, choiceId, choice) {
 
 function deleteChoice(chatId, messageId, questionId, choiceId) {
     Repo.removeChoice(choiceId).then(() => {
-        updatePoll(chatId, messageId, 0, questionId, false);
+        updatePoll(chatId, messageId, 0, questionId);
     });
 }
 
 function deletePoll(chatId, messageId, questionId) {
     Repo.updateQuestion(questionId, { isEnabled: 0 }).then(() => {
-        updatePoll(chatId, messageId, 0, questionId, true);
+        updatePoll(chatId, messageId, 0, questionId);
     });
 }
 
@@ -416,24 +410,6 @@ function formatPoll(poll) {
     return result;
 }
 
-function getInlineKeyboard(poll) {
-    const result = poll.choices.map(choice => [
-        {
-            text: choice.choice,
-            callback_data: `/vote ${poll.id} ${choice.id}`
-        }
-    ]);
-    result.push([
-        {
-            text: "🔄 Refresh",
-            callback_data: `/refresh ${poll.id}`
-        }
-    ]);
-    return {
-        inline_keyboard: result
-    };
-}
-
 function getPollsInlineKeyboard(polls) {
     const result = polls.map(poll => [
         {
@@ -443,37 +419,6 @@ function getPollsInlineKeyboard(polls) {
     ]);
     return {
         inline_keyboard: result
-    };
-}
-
-function getAdminInlineKeyboard(question, questionId) {
-    return {
-        inline_keyboard: [
-            [
-                {
-                    text: "💬 Share poll",
-                    switch_inline_query: question
-                }
-            ],
-            [
-                {
-                    text: "🔄 Refresh",
-                    callback_data: `/refreshAdmin ${questionId}`
-                }
-            ],
-            [
-                {
-                    text: "📝 Edit poll",
-                    callback_data: `/edit ${questionId}`
-                }
-            ],
-            [
-                {
-                    text: "🚫 Close poll",
-                    callback_data: `/delete ${questionId}`
-                }
-            ]
-        ]
     };
 }
 
@@ -508,19 +453,6 @@ function getEditKeyboard(questionId) {
                 {
                     text: "⬅ Back",
                     callback_data: `/refreshAdmin ${questionId}`
-                }
-            ]
-        ]
-    };
-}
-
-function getPollClosedInlineKeyboard() {
-    return {
-        inline_keyboard: [
-            [
-                {
-                    text: "🚫 Poll Closed",
-                    callback_data: "0"
                 }
             ]
         ]
