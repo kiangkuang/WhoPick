@@ -239,144 +239,74 @@ function done(userId) {
 }
 
 function inlineQuery(queryId, userId, query) {
-    models.question
-        .findAll({
-            where: {
-                userId: userId,
-                question: {
-                    like: `%${query}%`
-                },
-                isEnabled: 1
-            },
-            include: [
-                {
-                    model: models.choice,
-                    include: [models.vote]
-                }
-            ],
-            group: "`choices.id`, `choices.votes.userId`",
-            order: "`updatedAt` DESC, `choices.id`, `choices.votes.id`"
-        })
-        .then(polls => {
-            const reply = [];
-            polls.map(poll => {
-                reply.push({
-                    parse_mode: "Markdown",
-                    id: poll.id.toString(),
-                    type: "article",
-                    title: poll.question,
-                    description: getDescription(poll),
-                    message_text: appendHashtag(formatPoll(poll)),
-                    reply_markup: getInlineKeyboard(poll)
-                });
-            });
-
-            bot.answerInlineQuery(queryId, reply, {
-                cache_time: 0,
-                switch_pm_text: "Create new poll",
-                switch_pm_parameter: "x",
-                is_personal: true
+    Repo.getQuestions({
+        userId: userId,
+        question: {
+            like: `%${query}%`
+        },
+        isEnabled: 1
+    }).then(polls => {
+        const reply = [];
+        polls.map(poll => {
+            reply.push({
+                parse_mode: "Markdown",
+                id: poll.id.toString(),
+                type: "article",
+                title: poll.question,
+                description: getDescription(poll),
+                message_text: appendHashtag(formatPoll(poll)),
+                reply_markup: getInlineKeyboard(poll)
             });
         });
+
+        bot.answerInlineQuery(queryId, reply, {
+            cache_time: 0,
+            switch_pm_text: "Create new poll",
+            switch_pm_parameter: "x",
+            is_personal: true
+        });
+    });
 }
 
 function vote(inlineMessageId, userId, name, questionId, choiceId) {
-    models.question
-        .findById(questionId, {
-            include: [
-                {
-                    model: models.choice,
-                    where: {
-                        id: choiceId
-                    },
-                    include: [
-                        {
-                            model: models.vote,
-                            where: {
-                                userId: userId
-                            },
-                            required: false
-                        }
-                    ]
-                }
-            ]
-        })
-        .then(poll => {
-            if (poll.isEnabled) {
-                if (poll.choices[0].votes.length == 0) {
-                    models.vote
-                        .create({
-                            choiceId: choiceId,
-                            userId: userId,
-                            name: name
-                        })
-                        .then(() => {
-                            updatePoll(
-                                0,
-                                0,
-                                inlineMessageId,
-                                questionId,
-                                false
-                            );
-                        });
-                } else {
-                    models.vote
-                        .destroy({
-                            where: {
-                                choiceId: choiceId,
-                                userId: userId
-                            }
-                        })
-                        .then(() => {
-                            updatePoll(
-                                0,
-                                0,
-                                inlineMessageId,
-                                questionId,
-                                false
-                            );
-                        });
-                }
-            } else {
-                updatePoll(0, 0, inlineMessageId, questionId, true);
-            }
-        });
+    Repo.getQuestion(questionId).then(poll => {
+        if (poll.isEnabled) {
+            Repo.addVote(choiceId, userId, name)
+                .catch(() => {
+                    Repo.removeVote(choiceId, userId);
+                })
+                .finally(() => {
+                    updatePoll(0, 0, inlineMessageId, questionId, false);
+                });
+        } else {
+            updatePoll(0, 0, inlineMessageId, questionId, true);
+        }
+    });
 }
 
 function updatePoll(chatId, messageId, inlineMessageId, questionId, isClosed) {
-    models.question
-        .findById(questionId, {
-            include: [
-                {
-                    model: models.choice,
-                    include: [models.vote]
-                }
-            ],
-            group: "`choices.id`, `choices.votes.userId`",
-            order: "`choices.id`, `choices.votes.id`"
-        })
-        .then(poll => {
-            const opts = {
-                parse_mode: "Markdown",
-                reply_markup: isClosed
-                    ? getPollClosedInlineKeyboard()
-                    : getInlineKeyboard(poll)
-            };
-            if (chatId) {
-                opts.chat_id = chatId;
-                opts.message_id = messageId;
-                opts.reply_markup = isClosed
-                    ? getPollClosedInlineKeyboard()
-                    : getAdminInlineKeyboard(poll.question, questionId);
-            } else if (inlineMessageId) {
-                opts.inline_message_id = inlineMessageId;
-                opts.reply_markup = isClosed
-                    ? getPollClosedInlineKeyboard()
-                    : getInlineKeyboard(poll);
-            }
+    Repo.getQuestion(questionId).then(poll => {
+        const opts = {
+            parse_mode: "Markdown",
+            reply_markup: isClosed
+                ? getPollClosedInlineKeyboard()
+                : getInlineKeyboard(poll)
+        };
+        if (chatId) {
+            opts.chat_id = chatId;
+            opts.message_id = messageId;
+            opts.reply_markup = isClosed
+                ? getPollClosedInlineKeyboard()
+                : getAdminInlineKeyboard(poll.question, questionId);
+        } else if (inlineMessageId) {
+            opts.inline_message_id = inlineMessageId;
+            opts.reply_markup = isClosed
+                ? getPollClosedInlineKeyboard()
+                : getInlineKeyboard(poll);
+        }
 
-            bot.editMessageText(appendHashtag(formatPoll(poll)), opts);
-        });
+        bot.editMessageText(appendHashtag(formatPoll(poll)), opts);
+    });
 }
 
 function edit(chatId, messageId, questionId) {
@@ -388,22 +318,16 @@ function edit(chatId, messageId, questionId) {
 }
 
 function listChoices(chatId, messageId, questionId, type) {
-    models.choice
-        .findAll({
-            where: {
-                questionId: questionId
-            }
-        })
-        .then(choices => {
-            const opts = {
-                chat_id: chatId,
-                message_id: messageId
-            };
-            bot.editMessageReplyMarkup(
-                getListChoicesKeyboard(questionId, choices, type),
-                opts
-            );
-        });
+    Repo.getChoices(questionId).then(choices => {
+        const opts = {
+            chat_id: chatId,
+            message_id: messageId
+        };
+        bot.editMessageReplyMarkup(
+            getListChoicesKeyboard(questionId, choices, type),
+            opts
+        );
+    });
 }
 
 function startEditingQuestion(userId, questionId) {
@@ -449,32 +373,15 @@ function editQuestion(userId, questionId, question) {
 }
 
 function editChoice(userId, choiceId, choice) {
-    models.choice
-        .update(
-            {
-                choice: choice
-            },
-            {
-                where: {
-                    id: choiceId
-                }
-            }
-        )
-        .then(() => {
-            done(userId);
-        });
+    Repo.updateChoice(choiceId, { choice: choice }).then(() => {
+        done(userId);
+    });
 }
 
 function deleteChoice(chatId, messageId, questionId, choiceId) {
-    models.choice
-        .destroy({
-            where: {
-                id: choiceId
-            }
-        })
-        .then(() => {
-            updatePoll(chatId, messageId, 0, questionId, false);
-        });
+    Repo.removeChoice(choiceId).then(() => {
+        updatePoll(chatId, messageId, 0, questionId, false);
+    });
 }
 
 function deletePoll(chatId, messageId, questionId) {
@@ -484,20 +391,16 @@ function deletePoll(chatId, messageId, questionId) {
 }
 
 function polls(userId) {
-    models.question
-        .findAll({
-            where: {
-                userId: userId,
-                isEnabled: 1
-            }
-        })
-        .then(polls => {
-            const opts = {
-                parse_mode: "Markdown",
-                reply_markup: getPollsInlineKeyboard(polls)
-            };
-            bot.sendMessage(userId, "Here are your polls:", opts);
-        });
+    Repo.getQuestions({
+        userId: userId,
+        isEnabled: 1
+    }).then(polls => {
+        const opts = {
+            parse_mode: "Markdown",
+            reply_markup: getPollsInlineKeyboard(polls)
+        };
+        bot.sendMessage(userId, "Here are your polls:", opts);
+    });
 }
 
 function formatPoll(poll) {
