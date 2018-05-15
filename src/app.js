@@ -22,7 +22,9 @@ const editChoiceMap = new Map();
 let bot;
 if (isLocal) {
     bot = new TelegramBot(token, {
-        polling: true
+        polling: {
+            timeout: 2
+        }
     });
 } else {
     bot = new TelegramBot(token, {
@@ -79,24 +81,25 @@ bot.on("callback_query", msg => {
         case "/update": // /update questionId, for backward compatibility
 
         case "/refreshAdmin": // /refreshAdmin questionId
-            updatePoll(
+            updateChatPoll(
                 msg.message.chat.id,
                 msg.message.message_id,
-                0,
                 commands[1]
             );
             break;
 
         case "/refresh": // /refresh questionId
-            updatePoll(0, 0, msg.inline_message_id, commands[1]);
+            updateInlinePoll(msg.inline_message_id, commands[1]);
             break;
 
         case "/delete": // /delete questionId
-            deletePoll(
-                msg.message.chat.id,
-                msg.message.message_id,
-                commands[1]
-            );
+            Repo.updateQuestion(commands[1], { isEnabled: 0 }).then(() => {
+                updateChatPoll(
+                    msg.message.chat.id,
+                    msg.message.message_id,
+                    commands[1]
+                );
+            });
             break;
 
         case "/edit": // /edit questionId
@@ -134,12 +137,13 @@ bot.on("callback_query", msg => {
             break;
 
         case "/deleteChoice": // /deleteChoice questionId choiceId
-            deleteChoice(
-                msg.message.chat.id,
-                msg.message.message_id,
-                commands[1],
-                commands[2]
-            );
+            Repo.removeChoice(commands[2]).then(() => {
+                updateChatPoll(
+                    msg.message.chat.id,
+                    msg.message.message_id,
+                    commands[1]
+                );
+            });
             break;
     }
 });
@@ -165,7 +169,9 @@ function textInput(userId, name, text) {
 
     questionId = editQuestionMap.get(userId);
     if (questionId) {
-        editQuestion(userId, questionId, text);
+        Repo.updateQuestion(questionId, { question: text }).then(() => {
+            done(userId);
+        });
         return;
     }
 
@@ -173,7 +179,9 @@ function textInput(userId, name, text) {
     if (editChoiceObj) {
         const choiceId = editChoiceObj.choiceId;
         if (choiceId) {
-            editChoice(userId, choiceId, text);
+            Repo.updateChoice(choiceId, { choice: text }).then(() => {
+                done(userId);
+            });
             return;
         }
     }
@@ -221,15 +229,16 @@ function done(userId) {
             editQuestionMap.delete(userId);
             editChoiceMap.delete(userId);
 
-            Repo.getQuestion(questionId).then(poll => {
+            Repo.getQuestion(questionId).then(question => {
+                const poll = new Poll(question);
                 const opts = {
                     parse_mode: "Markdown",
-                    reply_markup: new Poll(poll).getInlineKeyboard(true)
+                    reply_markup: poll.getInlineKeyboard(true)
                 };
 
                 const reply =
                     "Done. You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with @WhoPickBot and select one of your polls to send.\n\n";
-                bot.sendMessage(userId, reply + formatPoll(poll), opts);
+                bot.sendMessage(userId, reply + poll, opts);
             });
         });
     } else {
@@ -244,17 +253,18 @@ function inlineQuery(queryId, userId, query) {
             like: `%${query}%`
         },
         isEnabled: 1
-    }).then(polls => {
+    }).then(questions => {
         const reply = [];
-        polls.map(poll => {
+        questions.map(question => {
+            const poll = new Poll(question);
             reply.push({
                 parse_mode: "Markdown",
-                id: poll.id.toString(),
+                id: question.id.toString(),
                 type: "article",
-                title: poll.question,
-                description: getDescription(poll),
-                message_text: appendHashtag(formatPoll(poll)),
-                reply_markup: new Poll(poll).getInlineKeyboard()
+                title: question.question,
+                description: poll.getDescription(),
+                message_text: poll.toString(),
+                reply_markup: poll.getInlineKeyboard()
             });
         });
 
@@ -275,31 +285,38 @@ function vote(inlineMessageId, userId, name, questionId, choiceId) {
                     Repo.removeVote(choiceId, userId);
                 })
                 .finally(() => {
-                    updatePoll(0, 0, inlineMessageId, questionId);
+                    updateInlinePoll(inlineMessageId, questionId);
                 });
         } else {
-            updatePoll(0, 0, inlineMessageId, questionId);
+            updateInlinePoll(inlineMessageId, questionId);
         }
     });
 }
 
-function updatePoll(chatId, messageId, inlineMessageId, questionId) {
-    Repo.getQuestion(questionId).then(p => {
-        const poll = new Poll(p);
+function updateChatPoll(chatId, messageId, questionId) {
+    Repo.getQuestion(questionId).then(question => {
+        const poll = new Poll(question);
         const opts = {
             parse_mode: "Markdown",
-            reply_markup: poll.getInlineKeyboard()
+            reply_markup: poll.getInlineKeyboard(true),
+            chat_id: chatId,
+            message_id: messageId
         };
-        if (chatId) {
-            opts.chat_id = chatId;
-            opts.message_id = messageId;
-            opts.reply_markup = poll.getInlineKeyboard(true);
-        } else if (inlineMessageId) {
-            opts.inline_message_id = inlineMessageId;
-            opts.reply_markup = poll.getInlineKeyboard();
-        }
 
-        bot.editMessageText(appendHashtag(formatPoll(p)), opts);
+        bot.editMessageText(poll.toString(), opts);
+    });
+}
+
+function updateInlinePoll(inlineMessageId, questionId) {
+    Repo.getQuestion(questionId).then(question => {
+        const poll = new Poll(question);
+        const opts = {
+            parse_mode: "Markdown",
+            reply_markup: poll.getInlineKeyboard(),
+            inline_message_id: inlineMessageId
+        };
+
+        bot.editMessageText(poll.toString(), opts);
     });
 }
 
@@ -360,30 +377,6 @@ function startEditingChoice(userId, questionId, choiceId) {
     );
 }
 
-function editQuestion(userId, questionId, question) {
-    Repo.updateQuestion(questionId, { question: question }).then(() => {
-        done(userId);
-    });
-}
-
-function editChoice(userId, choiceId, choice) {
-    Repo.updateChoice(choiceId, { choice: choice }).then(() => {
-        done(userId);
-    });
-}
-
-function deleteChoice(chatId, messageId, questionId, choiceId) {
-    Repo.removeChoice(choiceId).then(() => {
-        updatePoll(chatId, messageId, 0, questionId);
-    });
-}
-
-function deletePoll(chatId, messageId, questionId) {
-    Repo.updateQuestion(questionId, { isEnabled: 0 }).then(() => {
-        updatePoll(chatId, messageId, 0, questionId);
-    });
-}
-
 function polls(userId) {
     Repo.getQuestions({
         userId: userId,
@@ -395,19 +388,6 @@ function polls(userId) {
         };
         bot.sendMessage(userId, "Here are your polls:", opts);
     });
-}
-
-function formatPoll(poll) {
-    let result = `*${poll.question}*`;
-
-    poll.choices.forEach(choice => {
-        result += `\n\n_${choice.choice}_`;
-
-        choice.votes.forEach((vote, i) => {
-            result += `\n    ${i + 1}) ${vote.name}`;
-        });
-    });
-    return result;
 }
 
 function getPollsInlineKeyboard(polls) {
@@ -477,14 +457,6 @@ function getListChoicesKeyboard(questionId, choices, type) {
     return {
         inline_keyboard: result
     };
-}
-
-function getDescription(poll) {
-    return poll.choices.map(choice => choice.choice).join(", ");
-}
-
-function appendHashtag(str) {
-    return `${str}\n\n#WhoPick`;
 }
 
 function formatName(first, last) {

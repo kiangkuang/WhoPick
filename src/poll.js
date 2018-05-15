@@ -11,6 +11,24 @@ export default class Poll {
         }
         return inlineKeyboardClosed();
     }
+
+    getDescription() {
+        return this.poll.choices.map(choice => choice.choice).join(", ");
+    }
+
+    toString() {
+        let result = `*${this.poll.question}*`;
+
+        this.poll.choices.forEach(choice => {
+            result += `\n\n_${choice.choice}_`;
+
+            choice.votes.forEach((vote, i) => {
+                result += `\n    ${i + 1}) ${vote.name}`;
+            });
+        });
+
+        return result + `\n\n#WhoPick`;
+    }
 }
 
 function inlineKeyboard(poll) {
