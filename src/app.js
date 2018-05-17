@@ -1,6 +1,7 @@
 import Repo from "./repository";
 import Poll from "./poll";
 import TelegramBot from "node-telegram-bot-api";
+import TextInput from "./textInput";
 
 if (
     !process.env.BOT_TOKEN ||
@@ -36,8 +37,17 @@ if (isLocal) {
     bot.setWebHook(`https://${herokuAppName}.herokuapp.com/bot${token}`);
 }
 
+const ti = new TextInput(bot);
+
 // Matches all
 bot.onText(/(.*)/, (msg, match) => {
+    ti.parse(
+        msg.from.id,
+        formatName(msg.from.first_name, msg.from.last_name),
+        msg.text
+    );
+    return;
+
     switch (msg.text.split(" ")[0]) {
         case "/start":
             start(msg.from.id);
