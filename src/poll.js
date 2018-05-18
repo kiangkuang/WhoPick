@@ -1,15 +1,88 @@
 export default class Poll {
     constructor(poll) {
-        this.poll = poll;
+        if (Array.isArray(poll)) {
+            this.polls = poll;
+        } else {
+            this.poll = poll;
+        }
     }
 
-    getInlineKeyboard(isAdmin = false) {
+    getPollInlineKeyboard(isAdmin = false) {
         if (this.poll.isEnabled) {
             return isAdmin
                 ? inlineKeyboardAdmin(this.poll)
                 : inlineKeyboard(this.poll);
         }
         return inlineKeyboardClosed();
+    }
+
+    getPollsInlineKeyboard() {
+        const result = this.polls.map(poll => [
+            {
+                text: poll.question,
+                callback_data: `/refreshAdmin ${poll.id}`
+            }
+        ]);
+        return {
+            inline_keyboard: result
+        };
+    }
+
+    getChoicesInlineKeyboard(type) {
+        const result = this.poll.choices.map(choice => [
+            {
+                text: choice.choice,
+                callback_data: `/${type}Choice ${this.poll.id} ${choice.id}`
+            }
+        ]);
+
+        result.push([
+            {
+                text: "⬅ Back",
+                callback_data: "/refreshAdmin " + this.poll.id
+            }
+        ]);
+
+        return {
+            inline_keyboard: result
+        };
+    }
+
+    static getEditKeyboard(questionId) {
+        return {
+            inline_keyboard: [
+                [
+                    {
+                        text: "📝 Edit question",
+                        callback_data: `/editQuestion ${questionId}`
+                    }
+                ],
+                [
+                    {
+                        text: "📝 Edit options",
+                        callback_data: `/editChoices ${questionId}`
+                    }
+                ],
+                [
+                    {
+                        text: "➕ Add options",
+                        callback_data: `/addChoices ${questionId}`
+                    }
+                ],
+                [
+                    {
+                        text: "➖ Remove options",
+                        callback_data: `/deleteChoices ${questionId}`
+                    }
+                ],
+                [
+                    {
+                        text: "⬅ Back",
+                        callback_data: `/refreshAdmin ${questionId}`
+                    }
+                ]
+            ]
+        };
     }
 
     getDescription() {

@@ -17,14 +17,20 @@ export default class TextInput {
                     "/addChoice": function(client) {
                         this.transition(client, "addChoice");
                     },
+                    "/polls": function(client) {
+                        this.transition(client, "polls");
+                    },
                     "/editQuestion": function(client) {
                         this.transition(client, "editQuestion");
                     },
                     "/editChoice": function(client) {
                         this.transition(client, "editChoice");
                     },
-                    "*": function(client, msg) {
-                        console.log(msg);
+                    "*": function(client) {
+                        bot.sendMessage(
+                            client.userId,
+                            "Sorry I didn't get what you mean. Try sending /start to create a new poll!"
+                        );
                     }
                 },
                 addQuestion: {
@@ -86,22 +92,60 @@ export default class TextInput {
                         });
                     }
                 },
+                polls: {
+                    _onEnter: function(client) {
+                        Repo.getQuestions({
+                            userId: client.userId,
+                            isEnabled: 1
+                        }).then(polls => {
+                            const opts = {
+                                parse_mode: "Markdown",
+                                reply_markup: new Poll(
+                                    polls
+                                ).getPollsInlineKeyboard()
+                            };
+                            bot.sendMessage(
+                                client.userId,
+                                "Here are your polls:",
+                                opts
+                            );
+                        });
+                    }
+                },
                 editQuestion: {
                     _onEnter: function(client) {
-                        console.log("send edit qn instruction");
+                        bot.sendMessage(
+                            client.userId,
+                            "*Editing question*\nPlease send me the new question.",
+                            {
+                                parse_mode: "Markdown"
+                            }
+                        );
                     },
                     "*": function(client, msg) {
-                        console.log("qn " + msg + " edited\n");
-                        this.transition(client, "showPoll");
+                        Repo.updateQuestion(client.questionId, {
+                            question: msg
+                        }).then(() => {
+                            this.transition(client, "showPoll");
+                        });
                     }
                 },
                 editChoice: {
                     _onEnter: function(client) {
-                        console.log("send edit choice instruction");
+                        bot.sendMessage(
+                            client.userId,
+                            "*Editing option*\nPlease send me the new option.",
+                            {
+                                parse_mode: "Markdown"
+                            }
+                        );
                     },
                     "*": function(client, msg) {
-                        console.log("choice " + msg + " edited\n");
-                        this.transition(client, "showPoll");
+                        Repo.updateChoice(client.choiceId, {
+                            choice: msg
+                        }).then(() => {
+                            this.transition(client, "showPoll");
+                        });
                     }
                 },
                 showPoll: {
@@ -110,7 +154,7 @@ export default class TextInput {
                             const poll = new Poll(question);
                             const opts = {
                                 parse_mode: "Markdown",
-                                reply_markup: poll.getInlineKeyboard(true)
+                                reply_markup: poll.getPollInlineKeyboard(true)
                             };
 
                             bot.sendMessage(
@@ -134,6 +178,30 @@ export default class TextInput {
                 name: name
             };
         }
+
         this.sm.handle(this.clients[userId], msg);
+    }
+
+    editQuestion(userId, questionId) {
+        if (this.clients[userId] === undefined) {
+            this.clients[userId] = {
+                userId: userId
+            };
+        }
+        this.clients[userId].questionId = questionId;
+
+        this.sm.handle(this.clients[userId], "/editQuestion");
+    }
+
+    editChoice(userId, questionId, choiceId) {
+        if (this.clients[userId] === undefined) {
+            this.clients[userId] = {
+                userId: userId
+            };
+        }
+        this.clients[userId].questionId = questionId;
+        this.clients[userId].choiceId = choiceId;
+
+        this.sm.handle(this.clients[userId], "/editChoice");
     }
 }

@@ -41,14 +41,6 @@ export default class Repository {
         });
     }
 
-    static getChoices(questionId) {
-        return Models.choice.findAll({
-            where: {
-                questionId: questionId
-            }
-        });
-    }
-
     static addChoice(questionId, choice) {
         return Models.choice.create({
             questionId: questionId,
