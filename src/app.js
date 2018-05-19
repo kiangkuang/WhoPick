@@ -1,6 +1,6 @@
+import TelegramBot from "node-telegram-bot-api";
 import Repo from "./repository";
 import Poll from "./poll";
-import TelegramBot from "node-telegram-bot-api";
 import TextInput from "./textInput";
 
 if (
@@ -15,10 +15,6 @@ const isLocal = process.env.NODE_ENV === "local";
 const token = process.env.BOT_TOKEN;
 const port = process.env.PORT;
 const herokuAppName = process.env.HEROKU_APP_NAME;
-
-const newQuestionMap = new Map(); // value == -1 = need question, > 0 = need choice
-const editQuestionMap = new Map();
-const editChoiceMap = new Map();
 
 let bot;
 if (isLocal) {
@@ -37,59 +33,59 @@ if (isLocal) {
     bot.setWebHook(`https://${herokuAppName}.herokuapp.com/bot${token}`);
 }
 
-const ti = new TextInput(bot);
+const textInput = new TextInput(bot);
 
 // Matches all
 bot.onText(/(.*)/, msg => {
-    ti.parse(msg.from.id, formatName(msg.from), msg.text);
+    textInput.parse(msg.from.id, formatName(msg.from), msg.text);
 });
 
 bot.on("callback_query", msg => {
-    const commands = msg.data.split(" ");
-    switch (commands[0]) {
+    const params = msg.data.split(" ");
+    switch (params[0]) {
         case "/vote": // /vote questionId choiceId
-            vote(commands[1], commands[2], msg);
+            vote(msg, params[1], params[2]);
             break;
 
         case "/refreshAdmin": // /refreshAdmin questionId
-            refreshAdmin(commands[1], msg);
+            refreshAdmin(msg, params[1]);
             break;
         case "/refresh": // /refresh questionId
-            refresh(commands[1], msg);
+            refresh(msg, params[1]);
             break;
 
         case "/delete": // /delete questionId
-            remove(commands[1], msg);
+            remove(msg, params[1]);
             break;
 
         case "/edit": // /edit questionId
-            editMenu(commands[1], msg);
+            editMenu(msg, params[1]);
             break;
         case "/editChoices": // /editChoices questionId
-            editChoicesMenu(commands[1], msg, "edit");
+            editChoicesMenu(msg, params[1], "edit");
             break;
         case "/deleteChoices": // /deleteChoices questionId
-            editChoicesMenu(commands[1], msg, "delete");
+            editChoicesMenu(msg, params[1], "delete");
             break;
 
         case "/editQuestion": // /editQuestion questionId
-            ti.editQuestion(msg.from.id, commands[1]);
+            textInput.editQuestion(msg.from.id, params[1]);
             break;
         case "/editChoice": // /editChoice questionId choiceId
-            ti.editChoice(msg.from.id, commands[1], commands[2]);
+            textInput.editChoice(msg.from.id, params[1], params[2]);
             break;
 
         case "/addChoices": // /addChoices questionId
-            addChoices(commands[1], msg);
+            textInput.addChoice(msg.from.id, params[1]);
             break;
 
         case "/deleteChoice": // /deleteChoice questionId choiceId
-            deleteChoice(commands[1], commands[2], msg);
+            deleteChoice(msg, params[1], params[2]);
             break;
     }
 });
 
-function vote(questionId, choiceId, msg) {
+function vote(msg, questionId, choiceId) {
     Repo.getQuestion(questionId).then(poll => {
         if (poll.isEnabled) {
             Repo.addVote(choiceId, msg.from.id, formatName(msg.from))
@@ -97,15 +93,15 @@ function vote(questionId, choiceId, msg) {
                     Repo.removeVote(choiceId, msg.from.id);
                 })
                 .finally(() => {
-                    refresh(questionId, msg);
+                    refresh(msg, questionId);
                 });
         } else {
-            refresh(questionId, msg);
+            refresh(msg, questionId);
         }
     });
 }
 
-function refreshAdmin(questionId, msg) {
+function refreshAdmin(msg, questionId) {
     Repo.getQuestion(questionId).then(question => {
         const poll = new Poll(question);
         const opts = {
@@ -118,7 +114,7 @@ function refreshAdmin(questionId, msg) {
     });
 }
 
-function refresh(questionId, msg) {
+function refresh(msg, questionId) {
     Repo.getQuestion(questionId).then(question => {
         const poll = new Poll(question);
         const opts = {
@@ -130,7 +126,7 @@ function refresh(questionId, msg) {
     });
 }
 
-function remove(questionId, msg) {
+function remove(msg, questionId) {
     Repo.updateQuestion(questionId, { isEnabled: 0 }).then(() => {
         Repo.getQuestion(questionId).then(question => {
             const poll = new Poll(question);
@@ -145,7 +141,7 @@ function remove(questionId, msg) {
     });
 }
 
-function editMenu(questionId, msg) {
+function editMenu(msg, questionId) {
     const opts = {
         chat_id: msg.message.chat.id,
         message_id: msg.message.message_id
@@ -153,7 +149,7 @@ function editMenu(questionId, msg) {
     bot.editMessageReplyMarkup(Poll.getEditKeyboard(questionId), opts);
 }
 
-function editChoicesMenu(questionId, msg, editType) {
+function editChoicesMenu(msg, questionId, editType) {
     Repo.getQuestion(questionId).then(question => {
         const opts = {
             chat_id: msg.message.chat.id,
@@ -166,32 +162,17 @@ function editChoicesMenu(questionId, msg, editType) {
     });
 }
 
-function addChoices(questionId, msg) {
-    //todo
-    bot.sendMessage(
-        msg.from.id,
-        "*Adding options*\nPlease send me the new option.",
-        {
-            parse_mode: "Markdown"
-        }
-    );
-}
-
-function deleteChoice(questionId, choiceId, msg) {
+function deleteChoice(msg, questionId, choiceId) {
     Repo.removeChoice(choiceId).then(() => {
-        refreshAdmin(questionId, msg);
+        refreshAdmin(msg, questionId);
     });
 }
 
 bot.on("inline_query", msg => {
-    inlineQuery(msg.id, msg.from.id, msg.query);
-});
-
-function inlineQuery(queryId, userId, query) {
     Repo.getQuestions({
-        userId: userId,
+        userId: msg.from.id,
         question: {
-            like: `%${query}%`
+            like: `%${msg.query}%`
         },
         isEnabled: 1
     }).then(questions => {
@@ -208,15 +189,14 @@ function inlineQuery(queryId, userId, query) {
                 reply_markup: poll.getPollInlineKeyboard()
             });
         });
-
-        bot.answerInlineQuery(queryId, reply, {
+        bot.answerInlineQuery(msg.id, reply, {
             cache_time: 0,
             switch_pm_text: "Create new poll",
             switch_pm_parameter: "x",
             is_personal: true
         });
     });
-}
+});
 
 function formatName(from) {
     if (from.last_name) {

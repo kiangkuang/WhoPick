@@ -14,17 +14,8 @@ export default class TextInput {
                     "/start": function(client) {
                         this.transition(client, "addQuestion");
                     },
-                    "/addChoice": function(client) {
-                        this.transition(client, "addChoice");
-                    },
                     "/polls": function(client) {
                         this.transition(client, "polls");
-                    },
-                    "/editQuestion": function(client) {
-                        this.transition(client, "editQuestion");
-                    },
-                    "/editChoice": function(client) {
-                        this.transition(client, "editChoice");
                     },
                     "*": function(client) {
                         bot.sendMessage(
@@ -51,20 +42,31 @@ export default class TextInput {
                                 client.addingQuestion = false;
                                 client.questionId = result.id;
 
-                                bot.sendMessage(
-                                    client.userId,
-                                    `Creating a new poll:\n*${msg}*\n\nNext, send me the first answer choice.`,
-                                    {
-                                        parse_mode: "Markdown"
-                                    }
-                                );
-
-                                this.transition(client, "addChoice");
+                                bot
+                                    .sendMessage(
+                                        client.userId,
+                                        `Creating a new poll:\n*${msg}*`,
+                                        {
+                                            parse_mode: "Markdown"
+                                        }
+                                    )
+                                    .then(() => {
+                                        this.transition(client, "addChoice");
+                                    });
                             }
                         );
                     }
                 },
                 addChoice: {
+                    _onEnter(client) {
+                        bot.sendMessage(
+                            client.userId,
+                            `Send me an answer choice.`,
+                            {
+                                parse_mode: "Markdown"
+                            }
+                        );
+                    },
                     "*": function(client, msg) {
                         Repo.addChoice(client.questionId, msg).then(() => {
                             bot.sendMessage(
@@ -80,15 +82,18 @@ export default class TextInput {
                         Repo.updateQuestion(client.questionId, {
                             isEnabled: 1
                         }).then(() => {
-                            bot.sendMessage(
-                                client.userId,
-                                "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with `@WhoPickBot` and select one of your polls that appear to send.",
-                                {
-                                    parse_mode: "Markdown"
-                                }
-                            );
-
-                            this.transition(client, "showPoll");
+                            bot
+                                .sendMessage(
+                                    client.userId,
+                                    "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with `@WhoPickBot` and select one of your polls that appear to send.",
+                                    {
+                                        parse_mode: "Markdown"
+                                    }
+                                )
+                                .then(() => {
+                                    this.transition(client, "showPoll");
+                                });
+                            1;
                         });
                     }
                 },
@@ -157,13 +162,15 @@ export default class TextInput {
                                 reply_markup: poll.getPollInlineKeyboard(true)
                             };
 
-                            bot.sendMessage(
-                                client.userId,
-                                poll.toString(),
-                                opts
-                            );
-
-                            this.transition(client, "none");
+                            bot
+                                .sendMessage(
+                                    client.userId,
+                                    poll.toString(),
+                                    opts
+                                )
+                                .then(() => {
+                                    this.transition(client, "none");
+                                });
                         });
                     }
                 }
@@ -172,36 +179,40 @@ export default class TextInput {
     }
 
     parse(userId, name, msg) {
-        if (this.clients[userId] === undefined) {
-            this.clients[userId] = {
-                userId: userId,
-                name: name
-            };
-        }
-
-        this.sm.handle(this.clients[userId], msg);
+        const client = this.getClient(userId);
+        client.name = name;
+        this.sm.handle(client, msg);
     }
 
     editQuestion(userId, questionId) {
-        if (this.clients[userId] === undefined) {
-            this.clients[userId] = {
-                userId: userId
-            };
-        }
-        this.clients[userId].questionId = questionId;
-
-        this.sm.handle(this.clients[userId], "/editQuestion");
+        this.sm.transition(this.getClient(userId, questionId), "editQuestion");
     }
 
     editChoice(userId, questionId, choiceId) {
+        this.sm.transition(
+            this.getClient(userId, questionId, choiceId),
+            "editChoice"
+        );
+    }
+
+    addChoice(userId, questionId) {
+        this.sm.transition(this.getClient(userId, questionId), "addChoice");
+    }
+
+    getClient(userId, questionId, choiceId) {
         if (this.clients[userId] === undefined) {
             this.clients[userId] = {
                 userId: userId
             };
         }
-        this.clients[userId].questionId = questionId;
-        this.clients[userId].choiceId = choiceId;
 
-        this.sm.handle(this.clients[userId], "/editChoice");
+        if (questionId !== undefined) {
+            this.clients[userId].questionId = questionId;
+        }
+        if (choiceId !== undefined) {
+            this.clients[userId].choiceId = choiceId;
+        }
+
+        return this.clients[userId];
     }
 }
