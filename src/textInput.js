@@ -200,16 +200,16 @@ export default class TextInput {
     }
 
     getClient(userId, questionId, choiceId) {
-        if (this.clients[userId] === undefined) {
+        if (!this.clients[userId]) {
             this.clients[userId] = {
                 userId: userId
             };
         }
 
-        if (questionId !== undefined) {
+        if (questionId) {
             this.clients[userId].questionId = questionId;
         }
-        if (choiceId !== undefined) {
+        if (choiceId) {
             this.clients[userId].choiceId = choiceId;
         }
 

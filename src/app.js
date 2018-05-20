@@ -48,10 +48,10 @@ bot.on("callback_query", msg => {
             break;
 
         case "/refreshAdmin": // /refreshAdmin questionId
-            refreshAdmin(msg, params[1]);
+            refresh(msg, params[1], true);
             break;
         case "/refresh": // /refresh questionId
-            refresh(msg, params[1]);
+            refresh(msg, params[1], false);
             break;
 
         case "/delete": // /delete questionId
@@ -93,51 +93,25 @@ function vote(msg, questionId, choiceId) {
                     Repo.removeVote(choiceId, msg.from.id);
                 })
                 .finally(() => {
-                    refresh(msg, questionId);
+                    refresh(msg, questionId, false);
                 });
         } else {
-            refresh(msg, questionId);
+            refresh(msg, questionId, false);
         }
     });
 }
 
-function refreshAdmin(msg, questionId) {
+function refresh(msg, questionId, isAdmin) {
     Repo.getQuestion(questionId).then(question => {
         const poll = new Poll(question);
-        const opts = {
-            parse_mode: "Markdown",
-            reply_markup: poll.getPollInlineKeyboard(true),
-            chat_id: msg.message.chat.id,
-            message_id: msg.message.message_id
-        };
-        bot.editMessageText(poll.toString(), opts);
-    });
-}
-
-function refresh(msg, questionId) {
-    Repo.getQuestion(questionId).then(question => {
-        const poll = new Poll(question);
-        const opts = {
-            parse_mode: "Markdown",
-            reply_markup: poll.getPollInlineKeyboard(),
-            inline_message_id: msg.inline_message_id
-        };
+        const opts = getRefreshOpts(msg, poll, isAdmin);
         bot.editMessageText(poll.toString(), opts);
     });
 }
 
 function remove(msg, questionId) {
     Repo.updateQuestion(questionId, { isEnabled: 0 }).then(() => {
-        Repo.getQuestion(questionId).then(question => {
-            const poll = new Poll(question);
-            const opts = {
-                parse_mode: "Markdown",
-                reply_markup: poll.getPollInlineKeyboard(true),
-                chat_id: msg.message.chat.id,
-                message_id: msg.message.message_id
-            };
-            bot.editMessageText(poll.toString(), opts);
-        });
+        refresh(msg, questionId, true);
     });
 }
 
@@ -164,7 +138,7 @@ function editChoicesMenu(msg, questionId, editType) {
 
 function deleteChoice(msg, questionId, choiceId) {
     Repo.removeChoice(choiceId).then(() => {
-        refreshAdmin(msg, questionId);
+        refresh(msg, questionId, true);
     });
 }
 
@@ -186,7 +160,7 @@ bot.on("inline_query", msg => {
                 title: question.question,
                 description: poll.getDescription(),
                 message_text: poll.toString(),
-                reply_markup: poll.getPollInlineKeyboard()
+                reply_markup: poll.getPollInlineKeyboard(false)
             });
         });
         bot.answerInlineQuery(msg.id, reply, {
@@ -197,6 +171,22 @@ bot.on("inline_query", msg => {
         });
     });
 });
+
+function getRefreshOpts(msg, poll, isAdmin) {
+    const opts = {
+        parse_mode: "Markdown",
+        reply_markup: poll.getPollInlineKeyboard(isAdmin)
+    };
+
+    if (isAdmin) {
+        opts.chat_id = msg.message.chat.id;
+        opts.message_id = msg.message.message_id;
+    } else {
+        opts.inline_message_id = msg.inline_message_id;
+    }
+
+    return opts;
+}
 
 function formatName(from) {
     if (from.last_name) {

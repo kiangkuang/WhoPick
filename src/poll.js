@@ -7,7 +7,7 @@ export default class Poll {
         }
     }
 
-    getPollInlineKeyboard(isAdmin = false) {
+    getPollInlineKeyboard(isAdmin) {
         if (this.poll.isEnabled) {
             return isAdmin
                 ? inlineKeyboardAdmin(this.poll)
