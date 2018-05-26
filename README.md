@@ -3,14 +3,14 @@
 ## Usage
 1. Install dependencies
 
-        npm install 
+        yarn install 
 
-2. Set up bot token
+2. Set up environment variables file
 
-        npm run setup
+        yarn run setup
 
-3. Open `.env` file and replace `<token>` with the real bot token
+3. Open `.env` file and replace `<token>` and `<db url>` with the real bot token and DB URL
 
 4. Start Node.js server 
 
-        npm start
+        yarn start
