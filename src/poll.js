@@ -1,3 +1,5 @@
+import isUrl from "is-url";
+
 export default class Poll {
     constructor(poll) {
         if (Array.isArray(poll)) {
@@ -90,10 +92,10 @@ export default class Poll {
     }
 
     toString() {
-        let result = `*${this.poll.question}*`;
+        let result = `${markdownFormat(this.poll.question, "*")}`;
 
         this.poll.choices.forEach(choice => {
-            result += `\n\n_${choice.choice}_`;
+            result += `\n\n${markdownFormat(choice.choice, "_")}`;
 
             choice.votes.forEach((vote, i) => {
                 result += `\n    ${i + 1}) ${vote.name}`;
@@ -164,4 +166,18 @@ function inlineKeyboardClosed() {
             ]
         ]
     };
+}
+
+function markdownFormat(msg, format) {
+    const lines = msg.split("\n");
+    for (let i = 0; i < lines.length; i++) {
+        const words = lines[i].split(" ");
+        for (let j = 0; j < words.length; j++) {
+            if (!isUrl(words[j])) {
+                words[j] = format + words[j] + format;
+            }
+        }
+        lines[i] = words.join(" ");
+    }
+    return lines.join("\n");
 }

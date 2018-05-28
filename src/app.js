@@ -154,9 +154,10 @@ bot.on("inline_query", msg => {
         questions.map(question => {
             const poll = new Poll(question);
             reply.push({
-                parse_mode: "Markdown",
-                id: question.id.toString(),
                 type: "article",
+                parse_mode: "Markdown",
+                disable_web_page_preview: true,
+                id: question.id.toString(),
                 title: question.question,
                 description: poll.getDescription(),
                 message_text: poll.toString(),
@@ -175,6 +176,7 @@ bot.on("inline_query", msg => {
 function getRefreshOpts(msg, poll, isAdmin) {
     const opts = {
         parse_mode: "Markdown",
+        disable_web_page_preview: true,
         reply_markup: poll.getPollInlineKeyboard(isAdmin)
     };
 
