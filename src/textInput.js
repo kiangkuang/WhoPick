@@ -47,7 +47,8 @@ export default class TextInput {
                                         client.userId,
                                         `Creating a new poll:\n*${msg}*`,
                                         {
-                                            parse_mode: "Markdown"
+                                            parse_mode: "Markdown",
+                                            disable_web_page_preview: true
                                         }
                                     )
                                     .then(() => {
@@ -73,7 +74,8 @@ export default class TextInput {
                                 client.userId,
                                 `Added choice:\n*${msg}*\n\nNow send me another answer choice.\nWhen you've added enough, simply send /done to finish up.`,
                                 {
-                                    parse_mode: "Markdown"
+                                    parse_mode: "Markdown",
+                                    disable_web_page_preview: true
                                 }
                             );
                         });
@@ -159,6 +161,7 @@ export default class TextInput {
                             const poll = new Poll(question);
                             const opts = {
                                 parse_mode: "Markdown",
+                                disable_web_page_preview: true,
                                 reply_markup: poll.getPollInlineKeyboard(true)
                             };
 
