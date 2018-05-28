@@ -50,20 +50,18 @@ export default class TextInput {
 
                         Repo.addQuestion(client.userId, client.name, msg).then(
                             result => {
-                                bot
-                                    .sendMessage(
-                                        client.userId,
-                                        `Creating a new poll:\n*${msg}*`,
-                                        {
-                                            parse_mode: "Markdown",
-                                            disable_web_page_preview: true
-                                        }
-                                    )
-                                    .then(() => {
-                                        client.addingQuestion = false;
-                                        client.questionId = result.id;
-                                        this.transition(client, "addChoice");
-                                    });
+                                bot.sendMessage(
+                                    client.userId,
+                                    `Creating a new poll:\n*${msg}*`,
+                                    {
+                                        parse_mode: "Markdown",
+                                        disable_web_page_preview: true
+                                    }
+                                ).then(() => {
+                                    client.addingQuestion = false;
+                                    client.questionId = result.id;
+                                    this.transition(client, "addChoice");
+                                });
                             }
                         );
                     }
@@ -94,17 +92,15 @@ export default class TextInput {
                         Repo.updateQuestion(client.questionId, {
                             isEnabled: 1
                         }).then(() => {
-                            bot
-                                .sendMessage(
-                                    client.userId,
-                                    "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with `@WhoPickBot` and select one of your polls that appear to send.",
-                                    {
-                                        parse_mode: "Markdown"
-                                    }
-                                )
-                                .then(() => {
-                                    this.transition(client, "showPoll");
-                                });
+                            bot.sendMessage(
+                                client.userId,
+                                "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with `@WhoPickBot` and select one of your polls that appear to send.",
+                                {
+                                    parse_mode: "Markdown"
+                                }
+                            ).then(() => {
+                                this.transition(client, "showPoll");
+                            });
                             1;
                         });
                     }
@@ -121,15 +117,13 @@ export default class TextInput {
                                     polls
                                 ).getPollsInlineKeyboard()
                             };
-                            bot
-                                .sendMessage(
-                                    client.userId,
-                                    "Here are your polls:",
-                                    opts
-                                )
-                                .then(() => {
-                                    this.transition(client, "none");
-                                });
+                            bot.sendMessage(
+                                client.userId,
+                                "Here are your polls:",
+                                opts
+                            ).then(() => {
+                                this.transition(client, "none");
+                            });
                         });
                     }
                 },
@@ -179,15 +173,13 @@ export default class TextInput {
                                 reply_markup: poll.getPollInlineKeyboard(true)
                             };
 
-                            bot
-                                .sendMessage(
-                                    client.userId,
-                                    poll.toString(),
-                                    opts
-                                )
-                                .then(() => {
-                                    this.transition(client, "none");
-                                });
+                            bot.sendMessage(
+                                client.userId,
+                                poll.toString(),
+                                opts
+                            ).then(() => {
+                                this.transition(client, "none");
+                            });
                         });
                     }
                 }

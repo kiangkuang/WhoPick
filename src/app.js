@@ -20,7 +20,7 @@ let bot;
 if (isLocal) {
     bot = new TelegramBot(token, {
         polling: {
-            timeout: 2
+            params: { timeout: 2 }
         }
     });
 } else {
@@ -50,6 +50,7 @@ bot.on("callback_query", msg => {
         case "/refreshAdmin": // /refreshAdmin questionId
             refresh(msg, params[1], true);
             break;
+
         case "/refresh": // /refresh questionId
             refresh(msg, params[1], false);
             break;
@@ -61,9 +62,11 @@ bot.on("callback_query", msg => {
         case "/edit": // /edit questionId
             editMenu(msg, params[1]);
             break;
+
         case "/editChoices": // /editChoices questionId
             editChoicesMenu(msg, params[1], "edit");
             break;
+
         case "/deleteChoices": // /deleteChoices questionId
             editChoicesMenu(msg, params[1], "delete");
             break;
@@ -71,6 +74,7 @@ bot.on("callback_query", msg => {
         case "/editQuestion": // /editQuestion questionId
             textInput.editQuestion(msg.from.id, params[1]);
             break;
+
         case "/editChoice": // /editChoice questionId choiceId
             textInput.editChoice(msg.from.id, params[1], params[2]);
             break;
@@ -106,6 +110,9 @@ function refresh(msg, questionId, isAdmin) {
         const poll = new Poll(question);
         const opts = getRefreshOpts(msg, poll, isAdmin);
         bot.editMessageText(poll.toString(), opts);
+        bot.answerCallbackQuery(msg.id, {
+            text: "Poll updated!"
+        });
     });
 }
 
@@ -155,20 +162,22 @@ bot.on("inline_query", msg => {
             const poll = new Poll(question);
             reply.push({
                 type: "article",
-                parse_mode: "Markdown",
-                disable_web_page_preview: true,
                 id: question.id.toString(),
                 title: question.question,
                 description: poll.getDescription(),
-                message_text: poll.toString(),
+                input_message_content: {
+                    message_text: poll.toString(),
+                    parse_mode: "Markdown",
+                    disable_web_page_preview: true
+                },
                 reply_markup: poll.getPollInlineKeyboard(false)
             });
         });
         bot.answerInlineQuery(msg.id, reply, {
             cache_time: 0,
+            is_personal: true,
             switch_pm_text: "Create new poll",
-            switch_pm_parameter: "inlineQuery",
-            is_personal: true
+            switch_pm_parameter: "inlineQuery"
         });
     });
 });
