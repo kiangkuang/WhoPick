@@ -179,6 +179,10 @@ export default class TextInput {
     }
 
     parse(userId, name, msg) {
+        if (msg.includes("#WhoPick")) {
+            return;
+        }
+
         const client = this.getClient(userId);
         client.name = name;
         this.sm.handle(client, msg);
