@@ -118,11 +118,15 @@ export default class TextInput {
                                     polls
                                 ).getPollsInlineKeyboard()
                             };
-                            bot.sendMessage(
-                                client.userId,
-                                "Here are your polls:",
-                                opts
-                            );
+                            bot
+                                .sendMessage(
+                                    client.userId,
+                                    "Here are your polls:",
+                                    opts
+                                )
+                                .then(() => {
+                                    this.transition(client, "none");
+                                });
                         });
                     }
                 },
