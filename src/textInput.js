@@ -11,6 +11,9 @@ export default class TextInput {
 
             states: {
                 none: {
+                    "/start inlineQuery": function(client) {
+                        this.handle(client, "/start");
+                    },
                     "/start": function(client) {
                         bot.sendMessage(
                             client.userId,

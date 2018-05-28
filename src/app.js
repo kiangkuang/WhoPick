@@ -167,7 +167,7 @@ bot.on("inline_query", msg => {
         bot.answerInlineQuery(msg.id, reply, {
             cache_time: 0,
             switch_pm_text: "Create new poll",
-            switch_pm_parameter: "x",
+            switch_pm_parameter: "inlineQuery",
             is_personal: true
         });
     });
