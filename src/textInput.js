@@ -12,12 +12,21 @@ export default class TextInput {
             states: {
                 none: {
                     "/start": function(client) {
+                        bot.sendMessage(
+                            client.userId,
+                            "Let's create a new poll. First, send me the question."
+                        );
                         this.transition(client, "addQuestion");
                     },
                     "/polls": function(client) {
                         this.transition(client, "polls");
                     },
-                    "*": function(client) {
+                    "*": function(client, msg) {
+                        if (msg.startsWith("/start ")) {
+                            this.deferUntilTransition(client);
+                            this.transition(client, "addQuestion");
+                            return;
+                        }
                         bot.sendMessage(
                             client.userId,
                             "Sorry I didn't get what you mean. Try sending /start to create a new poll!"
@@ -25,23 +34,19 @@ export default class TextInput {
                     }
                 },
                 addQuestion: {
-                    _onEnter: function(client) {
-                        bot.sendMessage(
-                            client.userId,
-                            "Let's create a new poll. First, send me the question."
-                        );
-                    },
                     "*": function(client, msg) {
                         if (client.addingQuestion === true) {
+                            this.deferUntilTransition(client);
                             return;
                         }
                         client.addingQuestion = true;
 
+                        if (msg.startsWith("/start ")) {
+                            msg = msg.slice(7);
+                        }
+
                         Repo.addQuestion(client.userId, client.name, msg).then(
                             result => {
-                                client.addingQuestion = false;
-                                client.questionId = result.id;
-
                                 bot
                                     .sendMessage(
                                         client.userId,
@@ -52,6 +57,8 @@ export default class TextInput {
                                         }
                                     )
                                     .then(() => {
+                                        client.addingQuestion = false;
+                                        client.questionId = result.id;
                                         this.transition(client, "addChoice");
                                     });
                             }
@@ -185,7 +192,6 @@ export default class TextInput {
         if (msg.includes("#WhoPick")) {
             return;
         }
-
         const client = this.getClient(userId);
         client.name = name;
         this.sm.handle(client, msg);
