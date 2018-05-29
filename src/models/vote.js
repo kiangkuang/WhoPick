@@ -1,18 +1,24 @@
-"use strict";
-module.exports = function(sequelize, DataTypes) {
-    var vote = sequelize.define(
+export default function(sequelize, DataTypes) {
+    const vote = sequelize.define(
         "vote",
         {
-            userId: DataTypes.INTEGER,
-            name: DataTypes.STRING
+            name: DataTypes.STRING,
+            userId: {
+                type: DataTypes.INTEGER,
+                unique: "userId_choiceId_UNIQUE"
+            },
+            choiceId: {
+                type: DataTypes.INTEGER,
+                unique: "userId_choiceId_UNIQUE"
+            }
         },
         {
             classMethods: {
                 associate: function(models) {
-                    // associations can be defined here
+                    vote.belongsTo(models.choice);
                 }
             }
         }
     );
     return vote;
-};
+}

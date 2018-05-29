@@ -1,19 +1,17 @@
-"use strict";
+import fs from "fs";
+import path from "path";
+import Sequelize from "sequelize";
 
-var fs = require("fs");
-var path = require("path");
-var Sequelize = require("sequelize");
-var basename = path.basename(module.filename);
-var db = {};
+const basename = path.basename(module.filename);
+const db = {};
 
-var sequelize = new Sequelize(process.env.DB_URL, {
+const sequelize = new Sequelize(process.env.DB_URL, {
     dialectOptions: {
         charset: "utf8mb4"
     }
 });
 
-fs
-    .readdirSync(__dirname)
+fs.readdirSync(__dirname)
     .filter(function(file) {
         return (
             file.indexOf(".") !== 0 &&
@@ -22,7 +20,7 @@ fs
         );
     })
     .forEach(function(file) {
-        var model = sequelize["import"](path.join(__dirname, file));
+        const model = sequelize["import"](path.join(__dirname, file));
         db[model.name] = model;
     });
 
@@ -34,4 +32,4 @@ Object.keys(db).forEach(function(modelName) {
 
 db.sequelize = sequelize;
 db.Sequelize = Sequelize;
-module.exports = db;
+export default db;

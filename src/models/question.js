@@ -1,6 +1,5 @@
-"use strict";
-module.exports = function(sequelize, DataTypes) {
-    var question = sequelize.define(
+export default function(sequelize, DataTypes) {
+    const question = sequelize.define(
         "question",
         {
             question: DataTypes.STRING(4096),
@@ -20,4 +19,4 @@ module.exports = function(sequelize, DataTypes) {
         }
     );
     return question;
-};
+}

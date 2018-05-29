@@ -9,8 +9,8 @@
     "machina": "^2.0.2",
     "mysql": "^2.15.0",
     "node-telegram-bot-api": "^0.30.0",
-    "sequelize": "^3.27.0",
-    "sequelize-cli": "^2.4.0"
+    "sequelize": "^3",
+    "sequelize-cli": "^4.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.26.0",
