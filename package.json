@@ -22,9 +22,10 @@
   },
   "scripts": {
     "setup": "cp -n .env.example .env",
+    "create-db": "sequelize db:create",
+    "migrate": "sequelize db:migrate",
     "build": "rm -rf dist && babel src -d dist -s",
-    "start": "yarn run build && node -r dotenv/config dist/app.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "yarn build && node -r dotenv/config dist/app.js",
     "precommit": "lint-staged"
   },
   "lint-staged": {

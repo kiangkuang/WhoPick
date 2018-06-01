@@ -2,7 +2,7 @@
 
 module.exports = {
     up: (queryInterface, Sequelize) => {
-        return queryInterface.addIndex("votes", ["choiceId", "userId"], {
+        return queryInterface.addIndex("votes", ["userId", "choiceId"], {
             indexName: "userId_choiceId_UNIQUE",
             indicesType: "UNIQUE"
         });
