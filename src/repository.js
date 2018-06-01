@@ -8,7 +8,8 @@ export default class Repository {
                     model: Models.choice,
                     include: [Models.vote]
                 }
-            ]
+            ],
+            order: "`choices.id`, `choices.votes.id`"
         });
     }
 

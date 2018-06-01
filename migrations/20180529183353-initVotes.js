@@ -17,13 +17,11 @@ module.exports = {
                 },
                 userId: {
                     type: Sequelize.INTEGER,
-                    allowNull: true,
-                    unique: "userId_choiceId_UNIQUE"
+                    allowNull: true
                 },
                 choiceId: {
                     type: Sequelize.INTEGER,
                     allowNull: true,
-                    unique: "userId_choiceId_UNIQUE",
                     references: {
                         model: "choices",
                         key: "id"

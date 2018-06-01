@@ -3,36 +3,7 @@ import Repo from "./repository";
 import Poll from "./poll";
 import TextInput from "./textInput";
 
-if (
-    !process.env.BOT_TOKEN ||
-    process.env.BOT_TOKEN === "<token>" ||
-    !process.env.DB_URL ||
-    process.env.DB_URL === "<db url>"
-) {
-    throw "ERROR: env variables not set.";
-}
-const isLocal = process.env.NODE_ENV === "local";
-const token = process.env.BOT_TOKEN;
-const port = process.env.PORT;
-const herokuAppName = process.env.HEROKU_APP_NAME;
-
-let bot;
-if (isLocal) {
-    bot = new TelegramBot(token, {
-        polling: {
-            params: { timeout: 2 }
-        }
-    });
-} else {
-    bot = new TelegramBot(token, {
-        webHook: {
-            port: port,
-            host: "0.0.0.0"
-        }
-    });
-    bot.setWebHook(`https://${herokuAppName}.herokuapp.com/bot${token}`);
-}
-
+const bot = initBot();
 const textInput = new TextInput(bot);
 
 // Matches all
@@ -204,4 +175,30 @@ function formatName(from) {
         return `${from.first_name} ${from.last_name}`;
     }
     return from.first_name;
+}
+
+function initBot() {
+    const token = process.env.BOT_TOKEN;
+
+    if (!token) {
+        throw "ERROR: env variables not set.";
+    }
+
+    if (process.env.NODE_ENV === "local") {
+        return new TelegramBot(token, {
+            polling: {
+                params: { timeout: 2 }
+            }
+        });
+    }
+    const bot = new TelegramBot(token, {
+        webHook: {
+            port: process.env.PORT,
+            host: "0.0.0.0"
+        }
+    });
+    bot.setWebHook(
+        `https://${process.env.HEROKU_APP_NAME}.herokuapp.com/bot${token}`
+    );
+    return bot;
 }
