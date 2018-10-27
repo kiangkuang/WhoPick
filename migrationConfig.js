@@ -3,35 +3,17 @@ require("dotenv").config();
 const URL = require("url-parse");
 const dbUrl = new URL(process.env.DB_URL);
 
-const username = dbUrl.username;
-const password = dbUrl.password;
-const database = dbUrl.pathname.slice(1);
-const host = dbUrl.hostname;
-const port = dbUrl.port;
+const config = {
+    username: dbUrl.username,
+    password: dbUrl.password,
+    database: dbUrl.pathname.slice(1),
+    host: dbUrl.hostname,
+    port: dbUrl.port,
+    dialect: "mysql"
+};
 
 module.exports = {
-    local: {
-        username: username,
-        password: password,
-        database: database,
-        host: host,
-        port: port,
-        dialect: "mysql"
-    },
-    dev: {
-        username: username,
-        password: password,
-        database: database,
-        host: host,
-        port: port,
-        dialect: "mysql"
-    },
-    production: {
-        username: username,
-        password: password,
-        database: database,
-        host: host,
-        port: port,
-        dialect: "mysql"
-    }
+    local: config,
+    dev: config,
+    production: config
 };
