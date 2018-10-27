@@ -60,27 +60,27 @@ export default class TextInput {
                                 ).then(() => {
                                     client.addingQuestion = false;
                                     client.questionId = result.id;
-                                    this.transition(client, "addChoice");
+                                    this.transition(client, "addOption");
                                 });
                             }
                         );
                     }
                 },
-                addChoice: {
+                addOption: {
                     _onEnter(client) {
                         bot.sendMessage(
                             client.userId,
-                            `Send me an answer choice.`,
+                            `Send me an answer option.`,
                             {
                                 parse_mode: "Markdown"
                             }
                         );
                     },
                     "*": function(client, msg) {
-                        Repo.addChoice(client.questionId, msg).then(() => {
+                        Repo.addOption(client.questionId, msg).then(() => {
                             bot.sendMessage(
                                 client.userId,
-                                `Added choice:\n*${msg}*\n\nNow send me another answer choice.\nWhen you've added enough, simply send /done to finish up.`,
+                                `Added option:\n*${msg}*\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
                                 {
                                     parse_mode: "Markdown",
                                     disable_web_page_preview: true
@@ -145,7 +145,7 @@ export default class TextInput {
                         });
                     }
                 },
-                editChoice: {
+                editOption: {
                     _onEnter: function(client) {
                         bot.sendMessage(
                             client.userId,
@@ -156,8 +156,8 @@ export default class TextInput {
                         );
                     },
                     "*": function(client, msg) {
-                        Repo.updateChoice(client.choiceId, {
-                            choice: msg
+                        Repo.updateOption(client.optionId, {
+                            option: msg
                         }).then(() => {
                             this.transition(client, "showPoll");
                         });
@@ -200,18 +200,18 @@ export default class TextInput {
         this.sm.transition(this.getClient(userId, questionId), "editQuestion");
     }
 
-    editChoice(userId, questionId, choiceId) {
+    editOption(userId, questionId, optionId) {
         this.sm.transition(
-            this.getClient(userId, questionId, choiceId),
-            "editChoice"
+            this.getClient(userId, questionId, optionId),
+            "editOption"
         );
     }
 
-    addChoice(userId, questionId) {
-        this.sm.transition(this.getClient(userId, questionId), "addChoice");
+    addOption(userId, questionId) {
+        this.sm.transition(this.getClient(userId, questionId), "addOption");
     }
 
-    getClient(userId, questionId, choiceId) {
+    getClient(userId, questionId, optionId) {
         if (!this.clients[userId]) {
             this.clients[userId] = {
                 userId: userId
@@ -221,8 +221,8 @@ export default class TextInput {
         if (questionId) {
             this.clients[userId].questionId = questionId;
         }
-        if (choiceId) {
-            this.clients[userId].choiceId = choiceId;
+        if (optionId) {
+            this.clients[userId].optionId = optionId;
         }
 
         return this.clients[userId];

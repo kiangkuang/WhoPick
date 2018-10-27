@@ -14,7 +14,7 @@ bot.onText(/(.*)/, msg => {
 bot.on("callback_query", msg => {
     const params = msg.data.split(" ");
     switch (params[0]) {
-        case "/vote": // /vote questionId choiceId
+        case "/vote": // /vote questionId optionId
             vote(msg, params[1], params[2]);
             break;
 
@@ -34,38 +34,38 @@ bot.on("callback_query", msg => {
             editMenu(msg, params[1]);
             break;
 
-        case "/editChoices": // /editChoices questionId
-            editChoicesMenu(msg, params[1], "edit");
+        case "/editOptions": // /editOptions questionId
+            editOptionsMenu(msg, params[1], "edit");
             break;
 
-        case "/deleteChoices": // /deleteChoices questionId
-            editChoicesMenu(msg, params[1], "delete");
+        case "/deleteOptions": // /deleteOptions questionId
+            editOptionsMenu(msg, params[1], "delete");
             break;
 
         case "/editQuestion": // /editQuestion questionId
             textInput.editQuestion(msg.from.id, params[1]);
             break;
 
-        case "/editChoice": // /editChoice questionId choiceId
-            textInput.editChoice(msg.from.id, params[1], params[2]);
+        case "/editOption": // /editOption questionId optionId
+            textInput.editOption(msg.from.id, params[1], params[2]);
             break;
 
-        case "/addChoices": // /addChoices questionId
-            textInput.addChoice(msg.from.id, params[1]);
+        case "/addOptions": // /addOptions questionId
+            textInput.addOption(msg.from.id, params[1]);
             break;
 
-        case "/deleteChoice": // /deleteChoice questionId choiceId
-            deleteChoice(msg, params[1], params[2]);
+        case "/deleteOption": // /deleteOption questionId optionId
+            deleteOption(msg, params[1], params[2]);
             break;
     }
 });
 
-function vote(msg, questionId, choiceId) {
+function vote(msg, questionId, optionId) {
     Repo.getQuestion(questionId).then(poll => {
         if (poll.isEnabled) {
-            Repo.addVote(choiceId, msg.from.id, formatName(msg.from))
+            Repo.addVote(optionId, msg.from.id, formatName(msg.from))
                 .catch(() => {
-                    Repo.removeVote(choiceId, msg.from.id);
+                    Repo.removeVote(optionId, msg.from.id);
                 })
                 .finally(() => {
                     refresh(msg, questionId, false);
@@ -101,21 +101,21 @@ function editMenu(msg, questionId) {
     bot.editMessageReplyMarkup(Poll.getEditKeyboard(questionId), opts);
 }
 
-function editChoicesMenu(msg, questionId, editType) {
+function editOptionsMenu(msg, questionId, editType) {
     Repo.getQuestion(questionId).then(question => {
         const opts = {
             chat_id: msg.message.chat.id,
             message_id: msg.message.message_id
         };
         bot.editMessageReplyMarkup(
-            new Poll(question).getChoicesInlineKeyboard(editType),
+            new Poll(question).getOptionsInlineKeyboard(editType),
             opts
         );
     });
 }
 
-function deleteChoice(msg, questionId, choiceId) {
-    Repo.removeChoice(choiceId).then(() => {
+function deleteOption(msg, questionId, optionId) {
+    Repo.removeOption(optionId).then(() => {
         refresh(msg, questionId, true);
     });
 }

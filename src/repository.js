@@ -5,11 +5,11 @@ export default class Repository {
         return Models.question.findById(questionId, {
             include: [
                 {
-                    model: Models.choice,
+                    model: Models.option,
                     include: [Models.vote]
                 }
             ],
-            order: "`choices.id`, `choices.votes.id`"
+            order: "`options.id`, `options.votes.id`"
         });
     }
 
@@ -18,11 +18,11 @@ export default class Repository {
             where: where,
             include: [
                 {
-                    model: Models.choice,
+                    model: Models.option,
                     include: [Models.vote]
                 }
             ],
-            order: "`updatedAt` DESC, `choices.id`, `choices.votes.id`"
+            order: "`updatedAt` DESC, `options.id`, `options.votes.id`"
         });
     }
 
@@ -42,41 +42,41 @@ export default class Repository {
         });
     }
 
-    static addChoice(questionId, choice) {
-        return Models.choice.create({
+    static addOption(questionId, option) {
+        return Models.option.create({
             questionId: questionId,
-            choice: choice
+            option: option
         });
     }
 
-    static updateChoice(choiceId, data) {
-        return Models.choice.update(data, {
+    static updateOption(optionId, data) {
+        return Models.option.update(data, {
             where: {
-                id: choiceId
+                id: optionId
             }
         });
     }
 
-    static removeChoice(choiceId) {
-        return Models.choice.destroy({
+    static removeOption(optionId) {
+        return Models.option.destroy({
             where: {
-                id: choiceId
+                id: optionId
             }
         });
     }
 
-    static addVote(choiceId, userId, name) {
+    static addVote(optionId, userId, name) {
         return Models.vote.create({
-            choiceId: choiceId,
+            optionId: optionId,
             userId: userId,
             name: name
         });
     }
 
-    static removeVote(choiceId, userId) {
+    static removeVote(optionId, userId) {
         return Models.vote.destroy({
             where: {
-                choiceId: choiceId,
+                optionId: optionId,
                 userId: userId
             }
         });
