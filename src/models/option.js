@@ -1,18 +1,18 @@
 export default function(sequelize, DataTypes) {
-    const choice = sequelize.define(
-        "choice",
+    const option = sequelize.define(
+        "option",
         {
-            choice: DataTypes.STRING(4096),
+            option: DataTypes.STRING(4096),
             questionId: DataTypes.INTEGER
         },
         {
             classMethods: {
                 associate: function(models) {
-                    choice.belongsTo(models.question);
-                    choice.hasMany(models.vote);
+                    option.belongsTo(models.question);
+                    option.hasMany(models.vote);
                 }
             }
         }
     );
-    return choice;
+    return option;
 }

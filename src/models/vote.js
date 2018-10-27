@@ -5,17 +5,17 @@ export default function(sequelize, DataTypes) {
             name: DataTypes.STRING,
             userId: {
                 type: DataTypes.INTEGER,
-                unique: "userId_choiceId_UNIQUE"
+                unique: "userId_optionId_UNIQUE"
             },
-            choiceId: {
+            optionId: {
                 type: DataTypes.INTEGER,
-                unique: "userId_choiceId_UNIQUE"
+                unique: "userId_optionId_UNIQUE"
             }
         },
         {
             classMethods: {
                 associate: function(models) {
-                    vote.belongsTo(models.choice);
+                    vote.belongsTo(models.option);
                 }
             }
         }

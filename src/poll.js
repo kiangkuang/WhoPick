@@ -30,11 +30,11 @@ export default class Poll {
         };
     }
 
-    getChoicesInlineKeyboard(type) {
-        const result = this.poll.choices.map(choice => [
+    getOptionsInlineKeyboard(type) {
+        const result = this.poll.options.map(option => [
             {
-                text: choice.choice,
-                callback_data: `/${type}Choice ${this.poll.id} ${choice.id}`
+                text: option.option,
+                callback_data: `/${type}Option ${this.poll.id} ${option.id}`
             }
         ]);
 
@@ -62,19 +62,19 @@ export default class Poll {
                 [
                     {
                         text: "📝 Edit options",
-                        callback_data: `/editChoices ${questionId}`
+                        callback_data: `/editOptions ${questionId}`
                     }
                 ],
                 [
                     {
                         text: "➕ Add options",
-                        callback_data: `/addChoices ${questionId}`
+                        callback_data: `/addOptions ${questionId}`
                     }
                 ],
                 [
                     {
                         text: "➖ Remove options",
-                        callback_data: `/deleteChoices ${questionId}`
+                        callback_data: `/deleteOptions ${questionId}`
                     }
                 ],
                 [
@@ -88,16 +88,16 @@ export default class Poll {
     }
 
     getDescription() {
-        return this.poll.choices.map(choice => choice.choice).join(", ");
+        return this.poll.options.map(option => option.option).join(", ");
     }
 
     toString() {
         let result = `${markdownFormat(this.poll.question, "*")}`;
 
-        this.poll.choices.forEach(choice => {
-            result += `\n\n${markdownFormat(choice.choice, "_")}`;
+        this.poll.options.forEach(option => {
+            result += `\n\n${markdownFormat(option.option, "_")}`;
 
-            choice.votes.forEach((vote, i) => {
+            option.votes.forEach((vote, i) => {
                 result += `\n    ${i + 1}) ${vote.name}`;
             });
         });
@@ -107,10 +107,10 @@ export default class Poll {
 }
 
 function inlineKeyboard(poll) {
-    const result = poll.choices.map(choice => [
+    const result = poll.options.map(option => [
         {
-            text: choice.choice,
-            callback_data: `/vote ${poll.id} ${choice.id}`
+            text: option.option,
+            callback_data: `/vote ${poll.id} ${option.id}`
         }
     ]);
     result.push([

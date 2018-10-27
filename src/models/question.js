@@ -13,7 +13,7 @@ export default function(sequelize, DataTypes) {
         {
             classMethods: {
                 associate: function(models) {
-                    question.hasMany(models.choice);
+                    question.hasMany(models.option);
                 }
             }
         }
