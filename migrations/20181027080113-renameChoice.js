@@ -53,7 +53,7 @@ module.exports = {
                                             ["userId", "choiceId"],
                                             {
                                                 indexName:
-                                                    "userId_optionId_UNIQUE",
+                                                    "userId_choiceId_UNIQUE",
                                                 indicesType: "UNIQUE"
                                             }
                                         );
