@@ -26,6 +26,11 @@ bot.on("callback_query", msg => {
             refresh(msg, params[1], false);
             break;
 
+        case "/setShareAllowed":
+            // /setIsShareAllowed questionId isAllowShare
+            setIsShareAllowed(msg, params[1], params[2]);
+            break;
+
         case "/delete": // /delete questionId
             remove(msg, params[1]);
             break;
@@ -84,6 +89,14 @@ function refresh(msg, questionId, isAdmin) {
         bot.answerCallbackQuery(msg.id, {
             text: "Poll updated!"
         });
+    });
+}
+
+function setIsShareAllowed(msg, questionId, isShareAllowed) {
+    Repo.updateQuestion(questionId, {
+        isShareAllowed: isShareAllowed
+    }).then(() => {
+        refresh(msg, questionId, true);
     });
 }
 

@@ -8,6 +8,10 @@ export default function(sequelize, DataTypes) {
             isEnabled: {
                 type: DataTypes.BOOLEAN,
                 defaultValue: 0
+            },
+            isShareAllowed: {
+                type: DataTypes.BOOLEAN,
+                defaultValue: 0
             }
         },
         {
