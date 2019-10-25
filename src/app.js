@@ -135,33 +135,57 @@ function deleteOption(msg, questionId, optionId) {
 
 bot.on("inline_query", msg => {
     Repo.getQuestions({
-        userId: msg.from.id,
         question: {
             like: `%${msg.query}%`
         },
-        isEnabled: 1
-    }).then(questions => {
-        const reply = [];
-        questions.map(question => {
-            const poll = new Poll(question);
-            reply.push({
-                type: "article",
-                id: question.id.toString(),
-                title: question.question,
-                description: poll.getDescription(),
-                input_message_content: {
-                    message_text: poll.toString(),
-                    parse_mode: "Markdown",
-                    disable_web_page_preview: true
+        isEnabled: 1,
+        isShareAllowed: 1,
+        "$options.votes.userId$": msg.from.id
+    }).then(participatedQuestions => {
+        Promise.all([
+            Repo.getQuestions({
+                question: {
+                    like: `%${msg.query}%`
                 },
-                reply_markup: poll.getPollInlineKeyboard(false)
+                isEnabled: 1,
+                userId: msg.from.id
+            }),
+            Repo.getQuestions({
+                id: {
+                    $in: participatedQuestions.map(question => question.id)
+                }
+            })
+        ]).then(q => {
+            var questions = []
+                .concat(...q)
+                .filter(
+                    (q, i, self) => self.findIndex(x => x.id === q.id) === i
+                )
+                .sort((a, b) => b.updatedAt - a.updatedAt)
+                .slice(0, 10);
+
+            const reply = [];
+            questions.map(question => {
+                const poll = new Poll(question);
+                reply.push({
+                    type: "article",
+                    id: question.id.toString(),
+                    title: question.question,
+                    description: poll.getDescription(),
+                    input_message_content: {
+                        message_text: poll.toString(),
+                        parse_mode: "Markdown",
+                        disable_web_page_preview: true
+                    },
+                    reply_markup: poll.getPollInlineKeyboard(false)
+                });
             });
-        });
-        bot.answerInlineQuery(msg.id, reply, {
-            cache_time: 0,
-            is_personal: true,
-            switch_pm_text: "Create new poll",
-            switch_pm_parameter: "inlineQuery"
+            bot.answerInlineQuery(msg.id, reply, {
+                cache_time: 0,
+                is_personal: true,
+                switch_pm_text: "Create new poll",
+                switch_pm_parameter: "inlineQuery"
+            });
         });
     });
 });
