@@ -135,6 +135,16 @@ function inlineKeyboardAdmin(poll) {
             ],
             [
                 {
+                    text: poll.isShareAllowed
+                        ? "🔒 Make private (only you can share)"
+                        : "🔓 Make public (participants can share)",
+                    callback_data: `/setShareAllowed ${
+                        poll.id
+                    } ${!poll.isShareAllowed}`
+                }
+            ],
+            [
+                {
                     text: "🔄 Refresh",
                     callback_data: `/refreshAdmin ${poll.id}`
                 }

@@ -26,7 +26,7 @@ module.exports = {
                 isEnabled: {
                     type: Sequelize.BOOLEAN,
                     allowNull: true,
-                    defaultValue: "0"
+                    defaultValue: 0
                 },
                 createdAt: {
                     type: Sequelize.DATE,
