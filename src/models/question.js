@@ -1,4 +1,4 @@
-export default function(sequelize, DataTypes) {
+module.exports = function(sequelize, DataTypes) {
     const question = sequelize.define(
         "question",
         {
@@ -23,4 +23,4 @@ export default function(sequelize, DataTypes) {
         }
     );
     return question;
-}
+};

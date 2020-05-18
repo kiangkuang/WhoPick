@@ -1,6 +1,6 @@
-import isUrl from "is-url";
+const isUrl = require("is-url");
 
-export default class Poll {
+module.exports = class Poll {
     constructor(poll) {
         if (Array.isArray(poll)) {
             this.polls = poll;
@@ -104,7 +104,7 @@ export default class Poll {
 
         return result + `\n\n#WhoPick`;
     }
-}
+};
 
 function inlineKeyboard(poll) {
     const result = poll.options.map(option => [

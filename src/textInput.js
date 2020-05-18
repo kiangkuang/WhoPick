@@ -1,8 +1,8 @@
-import Machina from "machina";
-import Repo from "./repository";
-import Poll from "./poll";
+const Machina = require("machina");
+const Repo = require("./repository");
+const Poll = require("./poll");
 
-export default class TextInput {
+module.exports = class TextInput {
     constructor(bot) {
         this.clients = [];
         this.sm = new Machina.BehavioralFsm({
@@ -227,4 +227,4 @@ export default class TextInput {
 
         return this.clients[userId];
     }
-}
+};

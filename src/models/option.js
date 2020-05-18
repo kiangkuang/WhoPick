@@ -1,4 +1,4 @@
-export default function(sequelize, DataTypes) {
+module.exports = function(sequelize, DataTypes) {
     const option = sequelize.define(
         "option",
         {
@@ -15,4 +15,4 @@ export default function(sequelize, DataTypes) {
         }
     );
     return option;
-}
+};

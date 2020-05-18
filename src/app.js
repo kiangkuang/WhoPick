@@ -1,7 +1,7 @@
-import TelegramBot from "node-telegram-bot-api";
-import Repo from "./repository";
-import Poll from "./poll";
-import TextInput from "./textInput";
+const TelegramBot = require("node-telegram-bot-api");
+const Repo = require("./repository");
+const Poll = require("./poll");
+const TextInput = require("./textInput");
 
 const bot = initBot();
 const textInput = new TextInput(bot);

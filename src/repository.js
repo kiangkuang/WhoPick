@@ -1,6 +1,6 @@
-import Models from "./models";
+const Models = require("./models");
 
-export default class Repository {
+module.exports = class Repository {
     static getQuestion(questionId) {
         return Models.question.findById(questionId, {
             include: [
@@ -81,4 +81,4 @@ export default class Repository {
             }
         });
     }
-}
+};
