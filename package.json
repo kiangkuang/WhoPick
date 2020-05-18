@@ -25,7 +25,7 @@
     "create-db": "sequelize db:create",
     "migrate": "sequelize db:migrate",
     "build": "rm -rf dist && babel src -d dist -s",
-    "start": "yarn build && yarn migrate && node -r dotenv/config dist/app.js",
+    "start": "npm run build && npm run migrate && node -r dotenv/config dist/app.js",
     "precommit": "lint-staged"
   },
   "lint-staged": {

@@ -92,10 +92,10 @@ export default class Poll {
     }
 
     toString() {
-        let result = `${markdownFormat(this.poll.question, "*")}`;
+        let result = `${markdownFormat(this.poll.question, "b")}`;
 
         this.poll.options.forEach(option => {
-            result += `\n\n${markdownFormat(option.option, "_")}`;
+            result += `\n\n${markdownFormat(option.option, "i")}`;
 
             option.votes.forEach((vote, i) => {
                 result += `\n    ${i + 1}) ${vote.name}`;
@@ -183,9 +183,12 @@ function markdownFormat(msg, format) {
     for (let i = 0; i < lines.length; i++) {
         const words = lines[i].split(" ");
         for (let j = 0; j < words.length; j++) {
-            if (!isUrl(words[j])) {
-                words[j] = format + words[j] + format;
-            }
+            words[j] = words[j]
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;");
+            words[j] = `<${format}>${words[j]}</${format}>`;
         }
         lines[i] = words.join(" ");
     }

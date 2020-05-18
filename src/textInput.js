@@ -52,9 +52,9 @@ export default class TextInput {
                             result => {
                                 bot.sendMessage(
                                     client.userId,
-                                    `Creating a new poll:\n*${msg}*`,
+                                    `Creating a new poll:\n<b>${msg}</b>`,
                                     {
-                                        parse_mode: "Markdown",
+                                        parse_mode: "HTML",
                                         disable_web_page_preview: true
                                     }
                                 ).then(() => {
@@ -72,7 +72,7 @@ export default class TextInput {
                             client.userId,
                             `Send me an answer option.`,
                             {
-                                parse_mode: "Markdown"
+                                parse_mode: "HTML"
                             }
                         );
                     },
@@ -80,9 +80,9 @@ export default class TextInput {
                         Repo.addOption(client.questionId, msg).then(() => {
                             bot.sendMessage(
                                 client.userId,
-                                `Added option:\n*${msg}*\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
+                                `Added option:\n<b>${msg}</b>\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
                                 {
-                                    parse_mode: "Markdown",
+                                    parse_mode: "HTML",
                                     disable_web_page_preview: true
                                 }
                             );
@@ -94,9 +94,9 @@ export default class TextInput {
                         }).then(() => {
                             bot.sendMessage(
                                 client.userId,
-                                "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with `@WhoPickBot` and select one of your polls that appear to send.",
+                                "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with <code>@WhoPickBot</code> and select one of your polls that appear to send.",
                                 {
-                                    parse_mode: "Markdown"
+                                    parse_mode: "HTML"
                                 }
                             ).then(() => {
                                 this.transition(client, "showPoll");
@@ -112,7 +112,7 @@ export default class TextInput {
                             isEnabled: 1
                         }).then(polls => {
                             const opts = {
-                                parse_mode: "Markdown",
+                                parse_mode: "HTML",
                                 reply_markup: new Poll(
                                     polls
                                 ).getPollsInlineKeyboard()
@@ -131,9 +131,9 @@ export default class TextInput {
                     _onEnter: function(client) {
                         bot.sendMessage(
                             client.userId,
-                            "*Editing question*\nPlease send me the new question.",
+                            "<b>Editing question</b>\nPlease send me the new question.",
                             {
-                                parse_mode: "Markdown"
+                                parse_mode: "HTML"
                             }
                         );
                     },
@@ -149,9 +149,9 @@ export default class TextInput {
                     _onEnter: function(client) {
                         bot.sendMessage(
                             client.userId,
-                            "*Editing option*\nPlease send me the new option.",
+                            "<b>Editing option</b>\nPlease send me the new option.",
                             {
-                                parse_mode: "Markdown"
+                                parse_mode: "HTML"
                             }
                         );
                     },
@@ -168,7 +168,7 @@ export default class TextInput {
                         Repo.getQuestion(client.questionId).then(question => {
                             const poll = new Poll(question);
                             const opts = {
-                                parse_mode: "Markdown",
+                                parse_mode: "HTML",
                                 disable_web_page_preview: true,
                                 reply_markup: poll.getPollInlineKeyboard(true)
                             };

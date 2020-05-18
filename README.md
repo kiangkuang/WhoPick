@@ -3,23 +3,23 @@
 ## Usage
 1. Install dependencies
     ```
-    yarn install
+    npm install
     ```
 2. Set up environment variables file
     ```
-    yarn setup
+    npm run setup
     ```
 3. Open `.env` file and replace `<token>` and `<db url>` with the real bot token and MySQL DB URL
 
 4. Create DB
     ```    
-    yarn create-db
+    npm run create-db
     ``` 
 5. Run DB migrations
     ```
-    yarn migrate
+    npm run migrate
     ```
 6. Start Node.js server 
     ```
-    yarn start
+    npm run start
     ```

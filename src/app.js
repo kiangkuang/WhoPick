@@ -174,7 +174,7 @@ bot.on("inline_query", msg => {
                     description: poll.getDescription(),
                     input_message_content: {
                         message_text: poll.toString(),
-                        parse_mode: "Markdown",
+                        parse_mode: "HTML",
                         disable_web_page_preview: true
                     },
                     reply_markup: poll.getPollInlineKeyboard(false)
@@ -192,7 +192,7 @@ bot.on("inline_query", msg => {
 
 function getRefreshOpts(msg, poll, isAdmin) {
     const opts = {
-        parse_mode: "Markdown",
+        parse_mode: "HTML",
         disable_web_page_preview: true,
         reply_markup: poll.getPollInlineKeyboard(isAdmin)
     };
