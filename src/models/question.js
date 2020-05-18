@@ -1,4 +1,4 @@
-module.exports = function(sequelize, DataTypes) {
+module.exports = function (sequelize, DataTypes) {
     const question = sequelize.define(
         "question",
         {
@@ -7,19 +7,19 @@ module.exports = function(sequelize, DataTypes) {
             name: DataTypes.STRING,
             isEnabled: {
                 type: DataTypes.BOOLEAN,
-                defaultValue: 0
+                defaultValue: 0,
             },
             isShareAllowed: {
                 type: DataTypes.BOOLEAN,
-                defaultValue: 0
-            }
+                defaultValue: 0,
+            },
         },
         {
             classMethods: {
-                associate: function(models) {
+                associate: function (models) {
                     question.hasMany(models.option);
-                }
-            }
+                },
+            },
         }
     );
     return question;

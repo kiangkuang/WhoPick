@@ -11,5 +11,5 @@ module.exports = {
         return queryInterface.sequelize.query(
             "ALTER SCHEMA DEFAULT CHARACTER SET latin1"
         );
-    }
+    },
 };

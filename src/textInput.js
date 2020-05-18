@@ -11,20 +11,20 @@ module.exports = class TextInput {
 
             states: {
                 none: {
-                    "/start inlineQuery": function(client) {
+                    "/start inlineQuery": function (client) {
                         this.handle(client, "/start");
                     },
-                    "/start": function(client) {
+                    "/start": function (client) {
                         bot.sendMessage(
                             client.userId,
                             "Let's create a new poll. First, send me the question."
                         );
                         this.transition(client, "addQuestion");
                     },
-                    "/polls": function(client) {
+                    "/polls": function (client) {
                         this.transition(client, "polls");
                     },
-                    "*": function(client, msg) {
+                    "*": function (client, msg) {
                         if (msg.startsWith("/start ")) {
                             this.deferUntilTransition(client);
                             this.transition(client, "addQuestion");
@@ -34,10 +34,10 @@ module.exports = class TextInput {
                             client.userId,
                             "Sorry I didn't get what you mean. Try sending /start to create a new poll!"
                         );
-                    }
+                    },
                 },
                 addQuestion: {
-                    "*": function(client, msg) {
+                    "*": function (client, msg) {
                         if (client.addingQuestion === true) {
                             this.deferUntilTransition(client);
                             return;
@@ -49,13 +49,18 @@ module.exports = class TextInput {
                         }
 
                         Repo.addQuestion(client.userId, client.name, msg).then(
-                            result => {
+                            (result) => {
+                                msg = msg
+                                    .replace(/&/g, "&amp;")
+                                    .replace(/</g, "&lt;")
+                                    .replace(/>/g, "&gt;")
+                                    .replace(/"/g, "&quot;");
                                 bot.sendMessage(
                                     client.userId,
                                     `Creating a new poll:\n<b>${msg}</b>`,
                                     {
                                         parse_mode: "HTML",
-                                        disable_web_page_preview: true
+                                        disable_web_page_preview: true,
                                     }
                                 ).then(() => {
                                     client.addingQuestion = false;
@@ -64,7 +69,7 @@ module.exports = class TextInput {
                                 });
                             }
                         );
-                    }
+                    },
                 },
                 addOption: {
                     _onEnter(client) {
@@ -72,50 +77,55 @@ module.exports = class TextInput {
                             client.userId,
                             `Send me an answer option.`,
                             {
-                                parse_mode: "HTML"
+                                parse_mode: "HTML",
                             }
                         );
                     },
-                    "*": function(client, msg) {
+                    "*": function (client, msg) {
                         Repo.addOption(client.questionId, msg).then(() => {
+                            msg = msg
+                                .replace(/&/g, "&amp;")
+                                .replace(/</g, "&lt;")
+                                .replace(/>/g, "&gt;")
+                                .replace(/"/g, "&quot;");
                             bot.sendMessage(
                                 client.userId,
                                 `Added option:\n<b>${msg}</b>\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`,
                                 {
                                     parse_mode: "HTML",
-                                    disable_web_page_preview: true
+                                    disable_web_page_preview: true,
                                 }
                             );
                         });
                     },
-                    "/done": function(client) {
+                    "/done": function (client) {
                         Repo.updateQuestion(client.questionId, {
-                            isEnabled: 1
+                            isEnabled: 1,
                         }).then(() => {
                             bot.sendMessage(
                                 client.userId,
                                 "Done! You can now share it to a group or send it to your friends in a private message. To do this, tap the button below or start your message in any other chat with <code>@WhoPickBot</code> and select one of your polls that appear to send.",
                                 {
-                                    parse_mode: "HTML"
+                                    parse_mode: "HTML",
                                 }
                             ).then(() => {
                                 this.transition(client, "showPoll");
                             });
                             1;
                         });
-                    }
+                    },
                 },
                 polls: {
-                    _onEnter: function(client) {
+                    _onEnter: function (client) {
                         Repo.getQuestions({
                             userId: client.userId,
-                            isEnabled: 1
-                        }).then(polls => {
+                            isEnabled: 1,
+                        }).then((polls) => {
                             const opts = {
                                 parse_mode: "HTML",
                                 reply_markup: new Poll(
                                     polls
-                                ).getPollsInlineKeyboard()
+                                ).getPollsInlineKeyboard(),
                             };
                             bot.sendMessage(
                                 client.userId,
@@ -125,52 +135,52 @@ module.exports = class TextInput {
                                 this.transition(client, "none");
                             });
                         });
-                    }
+                    },
                 },
                 editQuestion: {
-                    _onEnter: function(client) {
+                    _onEnter: function (client) {
                         bot.sendMessage(
                             client.userId,
                             "<b>Editing question</b>\nPlease send me the new question.",
                             {
-                                parse_mode: "HTML"
+                                parse_mode: "HTML",
                             }
                         );
                     },
-                    "*": function(client, msg) {
+                    "*": function (client, msg) {
                         Repo.updateQuestion(client.questionId, {
-                            question: msg
+                            question: msg,
                         }).then(() => {
                             this.transition(client, "showPoll");
                         });
-                    }
+                    },
                 },
                 editOption: {
-                    _onEnter: function(client) {
+                    _onEnter: function (client) {
                         bot.sendMessage(
                             client.userId,
                             "<b>Editing option</b>\nPlease send me the new option.",
                             {
-                                parse_mode: "HTML"
+                                parse_mode: "HTML",
                             }
                         );
                     },
-                    "*": function(client, msg) {
+                    "*": function (client, msg) {
                         Repo.updateOption(client.optionId, {
-                            option: msg
+                            option: msg,
                         }).then(() => {
                             this.transition(client, "showPoll");
                         });
-                    }
+                    },
                 },
                 showPoll: {
-                    _onEnter: function(client) {
-                        Repo.getQuestion(client.questionId).then(question => {
+                    _onEnter: function (client) {
+                        Repo.getQuestion(client.questionId).then((question) => {
                             const poll = new Poll(question);
                             const opts = {
                                 parse_mode: "HTML",
                                 disable_web_page_preview: true,
-                                reply_markup: poll.getPollInlineKeyboard(true)
+                                reply_markup: poll.getPollInlineKeyboard(true),
                             };
 
                             bot.sendMessage(
@@ -181,9 +191,9 @@ module.exports = class TextInput {
                                 this.transition(client, "none");
                             });
                         });
-                    }
-                }
-            }
+                    },
+                },
+            },
         });
     }
 
@@ -214,7 +224,7 @@ module.exports = class TextInput {
     getClient(userId, questionId, optionId) {
         if (!this.clients[userId]) {
             this.clients[userId] = {
-                userId: userId
+                userId: userId,
             };
         }
 

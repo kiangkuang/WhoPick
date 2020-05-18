@@ -6,11 +6,11 @@ module.exports = {
             type: Sequelize.BOOLEAN,
             allowNull: true,
             defaultValue: 0,
-            after: "isEnabled"
+            after: "isEnabled",
         });
     },
 
     down: (queryInterface, Sequelize) => {
         return queryInterface.removeColumn("questions", "isShareAllowed");
-    }
+    },
 };

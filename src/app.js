@@ -7,11 +7,11 @@ const bot = initBot();
 const textInput = new TextInput(bot);
 
 // Matches all
-bot.onText(/(.*)/, msg => {
+bot.onText(/(.*)/, (msg) => {
     textInput.parse(msg.from.id, formatName(msg.from), msg.text);
 });
 
-bot.on("callback_query", msg => {
+bot.on("callback_query", (msg) => {
     const params = msg.data.split(" ");
     switch (params[0]) {
         case "/vote": // /vote questionId optionId
@@ -66,7 +66,7 @@ bot.on("callback_query", msg => {
 });
 
 function vote(msg, questionId, optionId) {
-    Repo.getQuestion(questionId).then(poll => {
+    Repo.getQuestion(questionId).then((poll) => {
         if (poll.isEnabled) {
             Repo.addVote(optionId, msg.from.id, formatName(msg.from))
                 .catch(() => {
@@ -82,19 +82,19 @@ function vote(msg, questionId, optionId) {
 }
 
 function refresh(msg, questionId, isAdmin) {
-    Repo.getQuestion(questionId).then(question => {
+    Repo.getQuestion(questionId).then((question) => {
         const poll = new Poll(question);
         const opts = getRefreshOpts(msg, poll, isAdmin);
         bot.editMessageText(poll.toString(), opts);
         bot.answerCallbackQuery(msg.id, {
-            text: "Poll updated!"
+            text: "Poll updated!",
         });
     });
 }
 
 function setIsShareAllowed(msg, questionId, isShareAllowed) {
     Repo.updateQuestion(questionId, {
-        isShareAllowed: isShareAllowed
+        isShareAllowed: isShareAllowed,
     }).then(() => {
         refresh(msg, questionId, true);
     });
@@ -109,16 +109,16 @@ function remove(msg, questionId) {
 function editMenu(msg, questionId) {
     const opts = {
         chat_id: msg.message.chat.id,
-        message_id: msg.message.message_id
+        message_id: msg.message.message_id,
     };
     bot.editMessageReplyMarkup(Poll.getEditKeyboard(questionId), opts);
 }
 
 function editOptionsMenu(msg, questionId, editType) {
-    Repo.getQuestion(questionId).then(question => {
+    Repo.getQuestion(questionId).then((question) => {
         const opts = {
             chat_id: msg.message.chat.id,
-            message_id: msg.message.message_id
+            message_id: msg.message.message_id,
         };
         bot.editMessageReplyMarkup(
             new Poll(question).getOptionsInlineKeyboard(editType),
@@ -133,39 +133,39 @@ function deleteOption(msg, questionId, optionId) {
     });
 }
 
-bot.on("inline_query", msg => {
+bot.on("inline_query", (msg) => {
     Repo.getQuestions({
         question: {
-            like: `%${msg.query}%`
+            like: `%${msg.query}%`,
         },
         isEnabled: 1,
         isShareAllowed: 1,
-        "$options.votes.userId$": msg.from.id
-    }).then(participatedQuestions => {
+        "$options.votes.userId$": msg.from.id,
+    }).then((participatedQuestions) => {
         Promise.all([
             Repo.getQuestions({
                 question: {
-                    like: `%${msg.query}%`
+                    like: `%${msg.query}%`,
                 },
                 isEnabled: 1,
-                userId: msg.from.id
+                userId: msg.from.id,
             }),
             Repo.getQuestions({
                 id: {
-                    $in: participatedQuestions.map(question => question.id)
-                }
-            })
-        ]).then(q => {
+                    $in: participatedQuestions.map((question) => question.id),
+                },
+            }),
+        ]).then((q) => {
             var questions = []
                 .concat(...q)
                 .filter(
-                    (q, i, self) => self.findIndex(x => x.id === q.id) === i
+                    (q, i, self) => self.findIndex((x) => x.id === q.id) === i
                 )
                 .sort((a, b) => b.updatedAt - a.updatedAt)
                 .slice(0, 10);
 
             const reply = [];
-            questions.map(question => {
+            questions.map((question) => {
                 const poll = new Poll(question);
                 reply.push({
                     type: "article",
@@ -175,16 +175,16 @@ bot.on("inline_query", msg => {
                     input_message_content: {
                         message_text: poll.toString(),
                         parse_mode: "HTML",
-                        disable_web_page_preview: true
+                        disable_web_page_preview: true,
                     },
-                    reply_markup: poll.getPollInlineKeyboard(false)
+                    reply_markup: poll.getPollInlineKeyboard(false),
                 });
             });
             bot.answerInlineQuery(msg.id, reply, {
                 cache_time: 0,
                 is_personal: true,
                 switch_pm_text: "Create new poll",
-                switch_pm_parameter: "inlineQuery"
+                switch_pm_parameter: "inlineQuery",
             });
         });
     });
@@ -194,7 +194,7 @@ function getRefreshOpts(msg, poll, isAdmin) {
     const opts = {
         parse_mode: "HTML",
         disable_web_page_preview: true,
-        reply_markup: poll.getPollInlineKeyboard(isAdmin)
+        reply_markup: poll.getPollInlineKeyboard(isAdmin),
     };
 
     if (isAdmin) {
@@ -224,15 +224,15 @@ function initBot() {
     if (process.env.NODE_ENV === "local") {
         return new TelegramBot(token, {
             polling: {
-                params: { timeout: 2 }
-            }
+                params: { timeout: 2 },
+            },
         });
     }
     const bot = new TelegramBot(token, {
         webHook: {
             port: process.env.PORT,
-            host: "0.0.0.0"
-        }
+            host: "0.0.0.0",
+        },
     });
     bot.setWebHook(
         `https://${process.env.HEROKU_APP_NAME}.herokuapp.com/bot${token}`

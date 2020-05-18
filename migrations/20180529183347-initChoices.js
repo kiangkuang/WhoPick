@@ -9,36 +9,36 @@ module.exports = {
                     type: Sequelize.INTEGER,
                     allowNull: false,
                     primaryKey: true,
-                    autoIncrement: true
+                    autoIncrement: true,
                 },
                 choice: {
                     type: Sequelize.STRING(4096),
-                    allowNull: true
+                    allowNull: true,
                 },
                 questionId: {
                     type: Sequelize.INTEGER,
                     allowNull: true,
                     references: {
                         model: "questions",
-                        key: "id"
-                    }
+                        key: "id",
+                    },
                 },
                 createdAt: {
                     type: Sequelize.DATE,
-                    allowNull: false
+                    allowNull: false,
                 },
                 updatedAt: {
                     type: Sequelize.DATE,
-                    allowNull: false
-                }
+                    allowNull: false,
+                },
             },
             {
-                charset: "utf8mb4"
+                charset: "utf8mb4",
             }
         );
     },
 
     down: (queryInterface, Sequelize) => {
         return queryInterface.dropTable("choices");
-    }
+    },
 };

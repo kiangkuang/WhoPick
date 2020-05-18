@@ -6,10 +6,10 @@ module.exports = class Repository {
             include: [
                 {
                     model: Models.option,
-                    include: [Models.vote]
-                }
+                    include: [Models.vote],
+                },
             ],
-            order: "`options.id`, `options.votes.id`"
+            order: "`options.id`, `options.votes.id`",
         });
     }
 
@@ -19,10 +19,10 @@ module.exports = class Repository {
             include: [
                 {
                     model: Models.option,
-                    include: [Models.vote]
-                }
+                    include: [Models.vote],
+                },
             ],
-            order: "`updatedAt` DESC, `options.id`, `options.votes.id`"
+            order: "`updatedAt` DESC, `options.id`, `options.votes.id`",
         });
     }
 
@@ -30,38 +30,38 @@ module.exports = class Repository {
         return Models.question.create({
             userId: userId,
             name: name,
-            question: question
+            question: question,
         });
     }
 
     static updateQuestion(questionId, data) {
         return Models.question.update(data, {
             where: {
-                id: questionId
-            }
+                id: questionId,
+            },
         });
     }
 
     static addOption(questionId, option) {
         return Models.option.create({
             questionId: questionId,
-            option: option
+            option: option,
         });
     }
 
     static updateOption(optionId, data) {
         return Models.option.update(data, {
             where: {
-                id: optionId
-            }
+                id: optionId,
+            },
         });
     }
 
     static removeOption(optionId) {
         return Models.option.destroy({
             where: {
-                id: optionId
-            }
+                id: optionId,
+            },
         });
     }
 
@@ -69,7 +69,7 @@ module.exports = class Repository {
         return Models.vote.create({
             optionId: optionId,
             userId: userId,
-            name: name
+            name: name,
         });
     }
 
@@ -77,8 +77,8 @@ module.exports = class Repository {
         return Models.vote.destroy({
             where: {
                 optionId: optionId,
-                userId: userId
-            }
+                userId: userId,
+            },
         });
     }
 };

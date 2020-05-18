@@ -9,11 +9,11 @@ const config = {
     database: dbUrl.pathname.slice(1),
     host: dbUrl.hostname,
     port: dbUrl.port,
-    dialect: "mysql"
+    dialect: "mysql",
 };
 
 module.exports = {
     local: config,
     dev: config,
-    production: config
+    production: config,
 };

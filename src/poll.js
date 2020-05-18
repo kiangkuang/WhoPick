@@ -19,34 +19,34 @@ module.exports = class Poll {
     }
 
     getPollsInlineKeyboard() {
-        const result = this.polls.map(poll => [
+        const result = this.polls.map((poll) => [
             {
                 text: poll.question,
-                callback_data: `/refreshAdmin ${poll.id}`
-            }
+                callback_data: `/refreshAdmin ${poll.id}`,
+            },
         ]);
         return {
-            inline_keyboard: result
+            inline_keyboard: result,
         };
     }
 
     getOptionsInlineKeyboard(type) {
-        const result = this.poll.options.map(option => [
+        const result = this.poll.options.map((option) => [
             {
                 text: option.option,
-                callback_data: `/${type}Option ${this.poll.id} ${option.id}`
-            }
+                callback_data: `/${type}Option ${this.poll.id} ${option.id}`,
+            },
         ]);
 
         result.push([
             {
                 text: "⬅ Back",
-                callback_data: "/refreshAdmin " + this.poll.id
-            }
+                callback_data: "/refreshAdmin " + this.poll.id,
+            },
         ]);
 
         return {
-            inline_keyboard: result
+            inline_keyboard: result,
         };
     }
 
@@ -56,46 +56,46 @@ module.exports = class Poll {
                 [
                     {
                         text: "📝 Edit question",
-                        callback_data: `/editQuestion ${questionId}`
-                    }
+                        callback_data: `/editQuestion ${questionId}`,
+                    },
                 ],
                 [
                     {
                         text: "📝 Edit options",
-                        callback_data: `/editOptions ${questionId}`
-                    }
+                        callback_data: `/editOptions ${questionId}`,
+                    },
                 ],
                 [
                     {
                         text: "➕ Add options",
-                        callback_data: `/addOptions ${questionId}`
-                    }
+                        callback_data: `/addOptions ${questionId}`,
+                    },
                 ],
                 [
                     {
                         text: "➖ Remove options",
-                        callback_data: `/deleteOptions ${questionId}`
-                    }
+                        callback_data: `/deleteOptions ${questionId}`,
+                    },
                 ],
                 [
                     {
                         text: "⬅ Back",
-                        callback_data: `/refreshAdmin ${questionId}`
-                    }
-                ]
-            ]
+                        callback_data: `/refreshAdmin ${questionId}`,
+                    },
+                ],
+            ],
         };
     }
 
     getDescription() {
-        return this.poll.options.map(option => option.option).join(", ");
+        return this.poll.options.map((option) => option.option).join(", ");
     }
 
     toString() {
-        let result = `${markdownFormat(this.poll.question, "b")}`;
+        let result = `${htmlFormat(this.poll.question, "b")}`;
 
-        this.poll.options.forEach(option => {
-            result += `\n\n${markdownFormat(option.option, "i")}`;
+        this.poll.options.forEach((option) => {
+            result += `\n\n${htmlFormat(option.option, "i")}`;
 
             option.votes.forEach((vote, i) => {
                 result += `\n    ${i + 1}) ${vote.name}`;
@@ -107,20 +107,20 @@ module.exports = class Poll {
 };
 
 function inlineKeyboard(poll) {
-    const result = poll.options.map(option => [
+    const result = poll.options.map((option) => [
         {
             text: option.option,
-            callback_data: `/vote ${poll.id} ${option.id}`
-        }
+            callback_data: `/vote ${poll.id} ${option.id}`,
+        },
     ]);
     result.push([
         {
             text: "🔄 Refresh",
-            callback_data: `/refresh ${poll.id}`
-        }
+            callback_data: `/refresh ${poll.id}`,
+        },
     ]);
     return {
-        inline_keyboard: result
+        inline_keyboard: result,
     };
 }
 
@@ -130,8 +130,8 @@ function inlineKeyboardAdmin(poll) {
             [
                 {
                     text: "💬 Share poll",
-                    switch_inline_query: poll.question
-                }
+                    switch_inline_query: poll.question,
+                },
             ],
             [
                 {
@@ -140,28 +140,28 @@ function inlineKeyboardAdmin(poll) {
                         : "🔓 Make public (participants can share)",
                     callback_data: `/setShareAllowed ${
                         poll.id
-                    } ${!poll.isShareAllowed}`
-                }
+                    } ${!poll.isShareAllowed}`,
+                },
             ],
             [
                 {
                     text: "🔄 Refresh",
-                    callback_data: `/refreshAdmin ${poll.id}`
-                }
+                    callback_data: `/refreshAdmin ${poll.id}`,
+                },
             ],
             [
                 {
                     text: "📝 Edit poll",
-                    callback_data: `/edit ${poll.id}`
-                }
+                    callback_data: `/edit ${poll.id}`,
+                },
             ],
             [
                 {
                     text: "🚫 Close poll",
-                    callback_data: `/delete ${poll.id}`
-                }
-            ]
-        ]
+                    callback_data: `/delete ${poll.id}`,
+                },
+            ],
+        ],
     };
 }
 
@@ -171,26 +171,18 @@ function inlineKeyboardClosed() {
             [
                 {
                     text: "🚫 Poll Closed",
-                    callback_data: "0"
-                }
-            ]
-        ]
+                    callback_data: "0",
+                },
+            ],
+        ],
     };
 }
 
-function markdownFormat(msg, format) {
-    const lines = msg.split("\n");
-    for (let i = 0; i < lines.length; i++) {
-        const words = lines[i].split(" ");
-        for (let j = 0; j < words.length; j++) {
-            words[j] = words[j]
-                .replace(/&/g, "&amp;")
-                .replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;")
-                .replace(/"/g, "&quot;");
-            words[j] = `<${format}>${words[j]}</${format}>`;
-        }
-        lines[i] = words.join(" ");
-    }
-    return lines.join("\n");
+function htmlFormat(msg, format) {
+    msg = msg
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    return `<${format}>${msg}</${format}>`;
 }

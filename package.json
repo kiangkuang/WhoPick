@@ -2,13 +2,13 @@
   "name": "whopick",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/app.js",
   "dependencies": {
-    "dotenv": "^5.0.1",
+    "dotenv": "^8.2.0",
     "is-url": "^1.2.4",
     "machina": "^2.0.2",
     "mysql": "^2.15.0",
-    "node-telegram-bot-api": "^0.30.0",
+    "node-telegram-bot-api": "^0.50.0",
     "sequelize": "^3",
     "sequelize-cli": "^4.0.0",
     "url-parse": "^1.4.0"

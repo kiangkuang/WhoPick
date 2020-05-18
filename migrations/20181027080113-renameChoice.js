@@ -16,7 +16,7 @@ module.exports = {
             .then(() =>
                 queryInterface.addIndex("votes", ["userId", "optionId"], {
                     indexName: "userId_optionId_UNIQUE",
-                    indicesType: "UNIQUE"
+                    indicesType: "UNIQUE",
                 })
             );
     },
@@ -36,8 +36,8 @@ module.exports = {
             .then(() =>
                 queryInterface.addIndex("votes", ["userId", "choiceId"], {
                     indexName: "userId_choiceId_UNIQUE",
-                    indicesType: "UNIQUE"
+                    indicesType: "UNIQUE",
                 })
             );
-    }
+    },
 };
