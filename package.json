@@ -7,9 +7,9 @@
     "dotenv": "^8.2.0",
     "is-url": "^1.2.4",
     "machina": "^2.0.2",
-    "mysql": "^2.15.0",
+    "mysql2": "^2.1.0",
     "node-telegram-bot-api": "^0.50.0",
-    "sequelize": "^3",
+    "sequelize": "^5.21.9",
     "sequelize-cli": "^4.0.0",
     "url-parse": "^1.4.0"
   },
@@ -25,11 +25,11 @@
     "migrate": "sequelize db:migrate",
     "dev": "nodemon -r dotenv/config src/app.js",
     "start": "npm run migrate && node -r dotenv/config src/app.js",
-    "lint": "prettier --write --tab-width 4 \"**/*.js\""
+    "lint": "prettier --write \"**/*.js\""
   },
   "lint-staged": {
     "*.js": [
-      "prettier --write --tab-width 4"
+      "prettier --write"
     ]
   },
   "husky": {
