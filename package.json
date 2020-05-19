@@ -2,7 +2,7 @@
   "name": "whopick",
   "version": "1.0.0",
   "description": "",
-  "main": "src/app.js",
+  "main": "app.js",
   "dependencies": {
     "dotenv": "^8.2.0",
     "is-url": "^1.2.4",
@@ -23,8 +23,8 @@
     "setup": "cp -n .env.example .env",
     "create-db": "sequelize db:create",
     "migrate": "sequelize db:migrate",
-    "dev": "nodemon -r dotenv/config src/app.js",
-    "start": "npm run migrate && node -r dotenv/config src/app.js",
+    "dev": "nodemon -r dotenv/config app.js",
+    "start": "npm run migrate && node -r dotenv/config app.js",
     "lint": "prettier --write \"**/*.js\""
   },
   "lint-staged": {
