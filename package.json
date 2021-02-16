@@ -7,24 +7,27 @@
     "dotenv": "^8.2.0",
     "is-url": "^1.2.4",
     "machina": "^4.0.2",
-    "mysql2": "^2.1.0",
-    "node-telegram-bot-api": "^0.50.0",
-    "sequelize": "^5.21.9",
+    "mysql2": "^2.2.5",
+    "node-telegram-bot-api": "^0.51.0",
+    "sequelize": "^6.5.0",
     "sequelize-cli": "^5.5.1",
-    "url-parse": "^1.4.0"
+    "url-parse": "^1.4.7"
   },
   "devDependencies": {
-    "husky": "^4.2.5",
-    "lint-staged": "^10.2.4",
-    "nodemon": "^2.0.4",
-    "prettier": "^2.0.5"
+    "@types/node": "^14.14.28",
+    "@types/validator": "^13.1.3",
+    "husky": "^5.0.9",
+    "lint-staged": "^10.5.4",
+    "prettier": "^2.2.1",
+    "tsc-watch": "^4.2.9",
+    "typescript": "^4.1.5"
   },
   "scripts": {
     "setup": "cp -n .env.example .env",
     "create-db": "sequelize db:create",
     "migrate": "sequelize db:migrate",
-    "dev": "nodemon -r dotenv/config app.js",
-    "start": "npm run migrate && node -r dotenv/config app.js",
+    "dev": "tsc-watch --onSuccess 'node -r dotenv/config ./dist/server.js'",
+    "start": "node -r dotenv/config ./dist/server.js",
     "lint": "prettier --write \"**/*.js\""
   },
   "lint-staged": {
