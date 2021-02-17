@@ -1,0 +1,13 @@
+{
+    "extends": [
+        "airbnb-typescript/base"
+    ],
+    "parserOptions": {
+        "project": "./tsconfig.json"
+    },
+    "rules": {
+        "@typescript-eslint/lines-between-class-members": "off",
+        "@typescript-eslint/no-use-before-define": "off",
+        "no-console": "off"
+    }
+}
