@@ -40,16 +40,15 @@ Option.init(
         },
         option: {
             type: DataTypes.STRING(4096),
-            allowNull: true
         },
         questionId: {
             type: DataTypes.INTEGER,
-            allowNull: true
         },
     },
     {
         sequelize,
         tableName: "options",
+        charset: "utf8mb4",
     }
 );
 

@@ -33,20 +33,19 @@ Vote.init(
         },
         name: {
             type: DataTypes.STRING,
-            allowNull: true
-        },
-        optionId: {
-            type: DataTypes.INTEGER,
-            allowNull: true
         },
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: true,
+            unique: "userId_optionId_UNIQUE",
+        },
+        optionId: {
+            type: DataTypes.INTEGER,
             unique: "userId_optionId_UNIQUE",
         },
     },
     {
         sequelize,
         tableName: "votes",
+        charset: "utf8mb4",
     }
 );

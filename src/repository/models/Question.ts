@@ -44,30 +44,24 @@ Question.init(
         },
         question: {
             type: DataTypes.STRING(4096),
-            allowNull: true,
         },
         userId: {
             type: DataTypes.INTEGER,
-            allowNull: true,
         },
         name: {
             type: DataTypes.STRING,
-            allowNull: true,
         },
         isEnabled: {
             type: DataTypes.BOOLEAN,
-            allowNull: true,
-            defaultValue: 0,
         },
         isShareAllowed: {
             type: DataTypes.BOOLEAN,
-            allowNull: true,
-            defaultValue: 0,
         },
     },
     {
         sequelize,
         tableName: "questions",
+        charset: "utf8mb4",
     }
 );
 

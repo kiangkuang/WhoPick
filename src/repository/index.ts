@@ -2,6 +2,11 @@ import { WhereOptions } from "sequelize/types";
 import { Option, OptionAttributes } from "./models/Option";
 import { Question, QuestionAttributes } from "./models/Question";
 import { Vote } from "./models/Vote";
+import sequelize from "./sequelize";
+
+export function sync() {
+    return sequelize.sync({ alter: true });
+}
 
 export function getQuestion(questionId: number) {
     return Question.findByPk(questionId, {
