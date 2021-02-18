@@ -4,6 +4,8 @@ import { Question, QuestionAttributes } from './models/Question';
 import { Vote } from './models/Vote';
 import sequelize from './sequelize';
 
+sequelize.authenticate();
+
 export function sync() {
   return sequelize.sync({ alter: true });
 }

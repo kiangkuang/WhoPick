@@ -1,7 +1,9 @@
 import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
+import { addOptionScene } from './scenes/addOption';
 import { startScene, startSceneId } from './scenes/start';
+import { WhoPickContext } from './session';
 
 const debug = Debug('whopick');
 
@@ -10,8 +12,11 @@ if (token === undefined) {
   throw new Error('BOT_TOKEN must be provided!');
 }
 
-const bot = new Telegraf<Scenes.SceneContext>(token);
-const stage = new Scenes.Stage<Scenes.SceneContext>([startScene], {
+const bot = new Telegraf<WhoPickContext>(token);
+const stage = new Scenes.Stage<WhoPickContext>([
+  startScene,
+  addOptionScene,
+], {
   ttl: 300,
 });
 
