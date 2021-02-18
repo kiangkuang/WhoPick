@@ -5,13 +5,13 @@ import { WhoPickContext } from '../session';
 
 export const startScene = new Scenes.BaseScene<WhoPickContext>(SceneId.Start);
 
-startScene.enter((ctx) => ctx.reply('Let\'s create a new poll. First, send me the question.'));
+startScene.enter(async (ctx) => ctx.reply('Let\'s create a new poll. First, send me the question.'));
 
 startScene.command('done', (ctx) => ctx.scene.leave());
 
 startScene.on('text', async (ctx) => {
   if (!ctx.from) {
-    throw new Error('ctx.from undefined');
+    throw new Error('ctx.from is undefined');
   }
 
   const question = await addQuestion(ctx.from.id, ctx.from.first_name, ctx.message.text);

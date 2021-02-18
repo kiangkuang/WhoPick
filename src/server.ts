@@ -3,6 +3,7 @@ import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
 import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
+import { showPollScene } from './scenes/showPoll';
 import { startScene } from './scenes/start';
 import { WhoPickContext } from './session';
 
@@ -17,6 +18,7 @@ const bot = new Telegraf<WhoPickContext>(token);
 const stage = new Scenes.Stage<WhoPickContext>([
   startScene,
   addOptionScene,
+  showPollScene,
 ], {
   ttl: 300,
 });
