@@ -1,9 +1,9 @@
 import { Scenes } from 'telegraf';
+import { SceneId } from '../enum';
 import { addOption, updateQuestion } from '../repository';
 import { WhoPickContext } from '../session';
 
-export const addOptionSceneId = 'addOption';
-export const addOptionScene = new Scenes.BaseScene<WhoPickContext>(addOptionSceneId);
+export const addOptionScene = new Scenes.BaseScene<WhoPickContext>(SceneId.AddOption);
 
 addOptionScene.enter((ctx) => ctx.reply('Send me an answer option.'));
 

@@ -1,8 +1,9 @@
 import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
+import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
-import { startScene, startSceneId } from './scenes/start';
+import { startScene } from './scenes/start';
 import { WhoPickContext } from './session';
 
 const debug = Debug('whopick');
@@ -23,7 +24,7 @@ const stage = new Scenes.Stage<WhoPickContext>([
 bot.use(session());
 bot.use(stage.middleware());
 
-bot.command('start', (ctx) => ctx.scene.enter(startSceneId));
+bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
 
 // Set telegram webhook

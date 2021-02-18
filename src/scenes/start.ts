@@ -1,10 +1,9 @@
 import { Scenes } from 'telegraf';
+import { SceneId } from '../enum';
 import { addQuestion } from '../repository';
 import { WhoPickContext } from '../session';
-import { addOptionSceneId } from './addOption';
 
-export const startSceneId = 'start';
-export const startScene = new Scenes.BaseScene<WhoPickContext>(startSceneId);
+export const startScene = new Scenes.BaseScene<WhoPickContext>(SceneId.Start);
 
 startScene.enter((ctx) => ctx.reply('Let\'s create a new poll. First, send me the question.'));
 
@@ -20,5 +19,5 @@ startScene.on('text', async (ctx) => {
 
   ctx.replyWithHTML(`Creating a new poll:\n<b>${ctx.message.text}</b>`);
 
-  return ctx.scene.enter(addOptionSceneId);
+  return ctx.scene.enter(SceneId.AddOption);
 });
