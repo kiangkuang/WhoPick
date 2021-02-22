@@ -1,6 +1,9 @@
 import Debug from 'debug';
 import express from 'express';
-import { Scenes, session, Telegraf } from 'telegraf';
+import {
+  Scenes, session, Telegraf, TelegramError,
+} from 'telegraf';
+import { refreshAdmin } from './actions/refreshAdmin';
 import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
 import { showPollScene } from './scenes/showPoll';
@@ -26,8 +29,15 @@ const stage = new Scenes.Stage<WhoPickContext>([
 bot.use(session());
 bot.use(stage.middleware());
 
+bot.action(/^refreshAdmin:/, refreshAdmin);
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
+
+bot.catch(((err) => {
+  if (err instanceof TelegramError && err.description.toLowerCase().includes('message is not modified')) return;
+
+  throw (err);
+}));
 
 // Set telegram webhook
 if (process.env.NODE_ENV === 'local') {

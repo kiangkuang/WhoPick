@@ -1,3 +1,4 @@
+import { Markup } from 'telegraf';
 import { Question } from './repository/models/Question';
 
 export function toString(poll: Question) {
@@ -14,33 +15,15 @@ export function toString(poll: Question) {
   return `${result}\n\n#WhoPick`;
 }
 
-export function adminKeyboard(poll: Question) {
-  return {
-    inline_keyboard: [
-      [{
-        text: '💬 Share poll',
-        switch_inline_query: poll.question,
-      }],
-      [{
-        text: '🔄 Refresh',
-        callback_data: `/refreshAdmin ${poll.id}`,
-      }],
-      [{
-        text: poll.isShareAllowed
-          ? '🔒 Set private (only you can share)'
-          : '🔓 Set public (participants can share)',
-        callback_data: `/setShareAllowed ${poll.id} ${!poll.isShareAllowed}`,
-      }],
-      [{
-        text: '📝 Edit poll',
-        callback_data: `/edit ${poll.id}`,
-      }],
-      [{
-        text: '🚫 Close poll',
-        callback_data: `/delete ${poll.id}`,
-      }],
-    ],
-  };
+export function getAdminKeyboard(poll: Question) {
+  const shareText = poll.isShareAllowed ? '🔒 Set private (only you can share)' : '🔓 Set public (participants can share)';
+  return [
+    [Markup.button.switchToChat('💬 Share poll', poll.question)],
+    [Markup.button.callback('🔄 Refresh', `refreshAdmin:${poll.id}`)],
+    [Markup.button.callback(shareText, `setShareAllowed:${poll.id}:${!poll.isShareAllowed}`)],
+    [Markup.button.callback('📝 Edit poll', `edit:${poll.id}`)],
+    [Markup.button.callback('🚫 Close poll', `delete:${poll.id}`)],
+  ];
 }
 
 function escapeHtml(msg: string, tag?: 'b' | 'i') {
