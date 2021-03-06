@@ -5,14 +5,12 @@ import { getQuestion } from '../repository';
 
 export async function refresh(ctx: ActionContext, isAdmin: boolean) {
   const [, questionId] = ctx.match.input.split(':');
+
   const question = await getQuestion(parseInt(questionId));
-  if (!question) {
-    throw new Error('question is null');
-  }
 
   try {
-    await ctx.editMessageText(toString(question), {
-      ...Markup.inlineKeyboard(getKeyboard(question, isAdmin)),
+    await ctx.editMessageText(toString(question!), {
+      ...Markup.inlineKeyboard(getKeyboard(question!, isAdmin)),
       parse_mode: 'HTML',
       disable_web_page_preview: true,
     });

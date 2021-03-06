@@ -28,7 +28,7 @@ function getAdminKeyboard(poll: Question) {
 }
 
 function getQuestionKeyboard(poll: Question) {
-  const result = (poll.options || []).map((option) => [
+  const result = (poll.options ?? []).map((option) => [
     Markup.button.callback(option.option, `vote:${poll.id}:${option.id}`),
   ]);
   result?.push([Markup.button.callback('🔄 Refresh', `refresh:${poll.id}`)]);
@@ -65,4 +65,10 @@ function escapeHtml(msg: string, tag?: 'b' | 'i') {
 
 export function formatName(from: User) {
   return (`${from.first_name} ${from.last_name ?? ''}`).trim();
+}
+
+export function getDescription(question: Question) {
+  return (question.options ?? [])
+    .map((option) => option.option)
+    .join(', ');
 }

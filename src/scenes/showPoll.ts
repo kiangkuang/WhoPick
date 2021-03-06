@@ -8,12 +8,9 @@ export const showPollScene = new Scenes.BaseScene<WhoPickContext>(SceneId.ShowPo
 
 showPollScene.enter(async (ctx) => {
   const question = await getQuestion(ctx.session.questionId);
-  if (!question) {
-    throw new Error('question is null');
-  }
 
-  ctx.replyWithHTML(toString(question), {
-    ...Markup.inlineKeyboard(getKeyboard(question, true)),
+  ctx.replyWithHTML(toString(question!), {
+    ...Markup.inlineKeyboard(getKeyboard(question!, true)),
     disable_web_page_preview: true,
   });
 

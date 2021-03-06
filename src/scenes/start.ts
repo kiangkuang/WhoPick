@@ -11,10 +11,6 @@ startScene.enter(async (ctx) => ctx.reply('Let\'s create a new poll. First, send
 startScene.command('done', (ctx) => ctx.scene.leave());
 
 startScene.on('text', async (ctx) => {
-  if (!ctx.from) {
-    throw new Error('ctx.from is undefined');
-  }
-
   const question = await addQuestion(ctx.from.id, formatName(ctx.from), ctx.message.text);
   ctx.session.questionId = question.id;
 

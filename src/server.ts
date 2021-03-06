@@ -1,8 +1,7 @@
 import Debug from 'debug';
 import express from 'express';
-import {
-  Scenes, session, Telegraf, TelegramError,
-} from 'telegraf';
+import { Scenes, session, Telegraf } from 'telegraf';
+import { inlineQuery } from './actions/inlineQuery';
 import { refresh } from './actions/refresh';
 import { vote } from './actions/vote';
 import { SceneId } from './enum';
@@ -34,13 +33,14 @@ bot.action(/^refreshAdmin:/, (ctx) => refresh(ctx, true));
 bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
 bot.action(/^vote:/, (ctx) => vote(ctx));
 
+bot.on('inline_query', (ctx) => inlineQuery(ctx));
+
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
 
 bot.catch(((err) => {
-  if (err instanceof TelegramError && err.description.toLowerCase().includes('message is not modified')) return;
-
-  throw (err);
+  debug(err);
+  // throw (err);
 }));
 
 // Set telegram webhook

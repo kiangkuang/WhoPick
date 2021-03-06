@@ -8,10 +8,6 @@ export const addOptionScene = new Scenes.BaseScene<WhoPickContext>(SceneId.AddOp
 addOptionScene.enter(async (ctx) => ctx.reply('Send me an answer option.'));
 
 addOptionScene.command('done', async (ctx) => {
-  if (!ctx.session.questionId) {
-    throw new Error('ctx.scene.session.questionId is undefined');
-  }
-
   await updateQuestion(ctx.session.questionId, {
     isEnabled: true,
   });
@@ -22,10 +18,6 @@ addOptionScene.command('done', async (ctx) => {
 });
 
 addOptionScene.on('text', async (ctx) => {
-  if (!ctx.session.questionId) {
-    throw new Error('ctx.scene.session.questionId is undefined');
-  }
-
   const option = await addOption(ctx.session.questionId, ctx.message.text);
 
   return ctx.replyWithHTML(`Added option:\n<b>${option.option}</b>\n\nNow send me another answer option.\nWhen you've added enough, simply send /done to finish up.`);
