@@ -66,8 +66,20 @@ export function formatName(from: User) {
   return (`${from.first_name} ${from.last_name ?? ''}`).trim();
 }
 
-export function getDescription(question: Question) {
-  return (question.options ?? [])
+export function getDescription(poll: Question) {
+  return (poll.options ?? [])
     .map((option) => option.option)
     .join(', ');
+}
+
+export function getEditMenu(poll:Question) {
+  return [
+    [Markup.button.callback('📝 Edit question', `editQuestion:${poll.id}`)],
+    [Markup.button.callback('📝 Edit options', `editOptions:${poll.id}`)],
+    [
+      Markup.button.callback('➕ Add options', `addOptions:${poll.id}`),
+      Markup.button.callback('➖ Remove options', `deleteOptions:${poll.id}`),
+    ],
+    [Markup.button.callback('⬅ Back', `refreshAdmin:${poll.id}`)],
+  ];
 }

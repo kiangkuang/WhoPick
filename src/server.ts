@@ -1,6 +1,7 @@
 import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
+import { edit } from './actions/edit';
 import { inlineQuery } from './actions/inlineQuery';
 import { refresh } from './actions/refresh';
 import { setQuestion } from './actions/setQuestion';
@@ -34,6 +35,7 @@ bot.action(/^refreshAdmin:/, (ctx) => refresh(ctx, true));
 bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
 bot.action(/^vote:/, vote);
 bot.action(/^setQuestion:/, setQuestion);
+bot.action(/^edit:/, edit);
 
 bot.on('inline_query', inlineQuery);
 
