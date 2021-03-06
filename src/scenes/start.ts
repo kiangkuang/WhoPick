@@ -1,5 +1,6 @@
 import { Scenes } from 'telegraf';
 import { SceneId } from '../enum';
+import { formatName } from '../formatter';
 import { addQuestion } from '../repository';
 import { WhoPickContext } from '../session';
 
@@ -14,7 +15,7 @@ startScene.on('text', async (ctx) => {
     throw new Error('ctx.from is undefined');
   }
 
-  const question = await addQuestion(ctx.from.id, ctx.from.first_name, ctx.message.text);
+  const question = await addQuestion(ctx.from.id, formatName(ctx.from), ctx.message.text);
   ctx.session.questionId = question.id;
 
   ctx.replyWithHTML(`Creating a new poll:\n<b>${ctx.message.text}</b>`);

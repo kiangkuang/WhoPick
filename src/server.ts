@@ -3,7 +3,8 @@ import express from 'express';
 import {
   Scenes, session, Telegraf, TelegramError,
 } from 'telegraf';
-import { refreshAdmin } from './actions/refreshAdmin';
+import { refresh } from './actions/refresh';
+import { vote } from './actions/vote';
 import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
 import { showPollScene } from './scenes/showPoll';
@@ -29,7 +30,10 @@ const stage = new Scenes.Stage<WhoPickContext>([
 bot.use(session());
 bot.use(stage.middleware());
 
-bot.action(/^refreshAdmin:/, refreshAdmin);
+bot.action(/^refreshAdmin:/, (ctx) => refresh(ctx, true));
+bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
+bot.action(/^vote:/, (ctx) => vote(ctx));
+
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
 

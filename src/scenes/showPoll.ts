@@ -1,6 +1,6 @@
 import { Markup, Scenes } from 'telegraf';
 import { SceneId } from '../enum';
-import { getAdminKeyboard, toString } from '../formatter';
+import { getKeyboard, toString } from '../formatter';
 import { getQuestion } from '../repository';
 import { WhoPickContext } from '../session';
 
@@ -13,7 +13,7 @@ showPollScene.enter(async (ctx) => {
   }
 
   ctx.replyWithHTML(toString(question), {
-    ...Markup.inlineKeyboard(getAdminKeyboard(question)),
+    ...Markup.inlineKeyboard(getKeyboard(question, true)),
     disable_web_page_preview: true,
   });
 
