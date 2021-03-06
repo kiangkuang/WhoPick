@@ -3,6 +3,7 @@ import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
 import { inlineQuery } from './actions/inlineQuery';
 import { refresh } from './actions/refresh';
+import { setShareAllowed } from './actions/setShareAllowed';
 import { vote } from './actions/vote';
 import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
@@ -31,9 +32,10 @@ bot.use(stage.middleware());
 
 bot.action(/^refreshAdmin:/, (ctx) => refresh(ctx, true));
 bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
-bot.action(/^vote:/, (ctx) => vote(ctx));
+bot.action(/^vote:/, vote);
+bot.action(/^setShareAllowed:/, setShareAllowed);
 
-bot.on('inline_query', (ctx) => inlineQuery(ctx));
+bot.on('inline_query', inlineQuery);
 
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
