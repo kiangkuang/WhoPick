@@ -17,37 +17,36 @@ export function toString(poll: Question) {
 }
 
 function getAdminKeyboard(poll: Question) {
-  const shareText = poll.isShareAllowed ? '🔒 Set private (only you can share)' : '🔓 Set public (participants can share)';
+  if (!poll.isEnabled) {
+    return [[Markup.button.callback('✅ Open poll', `setQuestion:${poll.id}:isEnabled:${!poll.isEnabled}`)]];
+  }
+
+  const shareText = poll.isShareAllowed
+    ? '🔒 Set private (only you can share)'
+    : '🔓 Set public (participants can share)';
   return [
     [Markup.button.switchToChat('💬 Share poll', poll.question)],
     [Markup.button.callback('🔄 Refresh', `refreshAdmin:${poll.id}`)],
-    [Markup.button.callback(shareText, `setShareAllowed:${poll.id}:${!poll.isShareAllowed}`)],
+    [Markup.button.callback(shareText, `setQuestion:${poll.id}:isShareAllowed:${!poll.isShareAllowed}`)],
     [Markup.button.callback('📝 Edit poll', `edit:${poll.id}`)],
-    [Markup.button.callback('🚫 Close poll', `delete:${poll.id}`)],
+    [Markup.button.callback('🚫 Close poll', `setQuestion:${poll.id}:isEnabled:${!poll.isEnabled}`)],
   ];
 }
 
 function getQuestionKeyboard(poll: Question) {
-  const result = (poll.options ?? []).map((option) => [
-    Markup.button.callback(option.option, `vote:${poll.id}:${option.id}`),
-  ]);
-  result?.push([Markup.button.callback('🔄 Refresh', `refresh:${poll.id}`)]);
+  if (!poll.isEnabled) {
+    return [[Markup.button.callback('🚫 Poll closed', `refresh:${poll.id}`)]];
+  }
+
+  const result = (poll.options ?? []).map((option) => [Markup.button.callback(option.option, `vote:${poll.id}:${option.id}`)]);
+  result.push([Markup.button.callback('🔄 Refresh', `refresh:${poll.id}`)]);
   return result;
 }
 
-function getDisabledKeyboard() {
-  return [
-    [Markup.button.callback('🚫 Poll Closed', '0')],
-  ];
-}
-
 export function getKeyboard(poll:Question, isAdmin: boolean) {
-  if (poll.isEnabled) {
-    return isAdmin
-      ? getAdminKeyboard(poll)
-      : getQuestionKeyboard(poll);
-  }
-  return getDisabledKeyboard();
+  return isAdmin
+    ? getAdminKeyboard(poll)
+    : getQuestionKeyboard(poll);
 }
 
 function escapeHtml(msg: string, tag?: 'b' | 'i') {

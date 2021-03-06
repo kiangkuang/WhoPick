@@ -3,7 +3,7 @@ import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
 import { inlineQuery } from './actions/inlineQuery';
 import { refresh } from './actions/refresh';
-import { setShareAllowed } from './actions/setShareAllowed';
+import { setQuestion } from './actions/setQuestion';
 import { vote } from './actions/vote';
 import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
@@ -33,7 +33,7 @@ bot.use(stage.middleware());
 bot.action(/^refreshAdmin:/, (ctx) => refresh(ctx, true));
 bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
 bot.action(/^vote:/, vote);
-bot.action(/^setShareAllowed:/, setShareAllowed);
+bot.action(/^setQuestion:/, setQuestion);
 
 bot.on('inline_query', inlineQuery);
 
