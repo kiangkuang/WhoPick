@@ -3,4 +3,5 @@ export enum SceneId {
   AddOption = 'AddOption',
   ShowPoll = 'ShowPoll',
   Refresh = 'Refresh',
+  EditQuestion = 'EditQuestion',
 }

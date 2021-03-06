@@ -2,12 +2,14 @@ import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
 import { edit } from './actions/edit';
+import { editQuestion } from './actions/editQuestion';
 import { inlineQuery } from './actions/inlineQuery';
 import { refresh } from './actions/refresh';
 import { setQuestion } from './actions/setQuestion';
 import { vote } from './actions/vote';
 import { SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
+import { editQuestionScene } from './scenes/editQuestion';
 import { showPollScene } from './scenes/showPoll';
 import { startScene } from './scenes/start';
 import { WhoPickContext } from './session';
@@ -24,6 +26,7 @@ const stage = new Scenes.Stage<WhoPickContext>([
   startScene,
   addOptionScene,
   showPollScene,
+  editQuestionScene,
 ], {
   ttl: 300,
 });
@@ -36,6 +39,7 @@ bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
 bot.action(/^vote:/, vote);
 bot.action(/^setQuestion:/, setQuestion);
 bot.action(/^edit:/, edit);
+bot.action(/^editQuestion:/, editQuestion);
 
 bot.on('inline_query', inlineQuery);
 
