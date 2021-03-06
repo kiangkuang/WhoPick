@@ -26,7 +26,7 @@ export async function inlineQuery(ctx: InlineQueryContext) {
   const questions = _
     .chain(await ownQuestions)
     .unionBy(await participatedQuestions, (x) => x.id)
-    .sortBy((x) => x.updatedAt)
+    .orderBy((x) => x.updatedAt, 'desc')
     .take(10)
     .value();
 
