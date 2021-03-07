@@ -14,11 +14,11 @@ import { setQuestion } from './actions/setQuestion';
 import { vote } from './actions/vote';
 import { Action, getActionRegExp, SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
+import { addQuestionScene } from './scenes/addQuestion';
 import { editOptionScene } from './scenes/editOption';
 import { editQuestionScene } from './scenes/editQuestion';
 import { pollsScene } from './scenes/polls';
 import { showPollScene } from './scenes/showPoll';
-import { startScene } from './scenes/start';
 import { WhoPickContext } from './session';
 
 const debug = Debug('whopick');
@@ -30,7 +30,7 @@ if (token === undefined) {
 
 const bot = new Telegraf<WhoPickContext>(token);
 const stage = new Scenes.Stage<WhoPickContext>([
-  startScene,
+  addQuestionScene,
   addOptionScene,
   showPollScene,
   editQuestionScene,
@@ -56,7 +56,7 @@ bot.action(getActionRegExp(Action.AddOptions), addOptions);
 bot.action(getActionRegExp(Action.EditOption), editOption);
 bot.action(getActionRegExp(Action.DeleteOption), deleteOption);
 
-bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
+bot.command('start', (ctx) => ctx.scene.enter(SceneId.AddQuestion));
 bot.command('polls', (ctx) => ctx.scene.enter(SceneId.Polls));
 
 bot.on('inline_query', inlineQuery);

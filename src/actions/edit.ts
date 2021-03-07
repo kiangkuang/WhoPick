@@ -1,5 +1,5 @@
 import { ActionContext } from '.';
-import { getEditMenu } from '../formatter';
+import { getEditMenu } from '../keyboard';
 import { getQuestion } from '../repository';
 
 export async function edit(ctx: ActionContext) {

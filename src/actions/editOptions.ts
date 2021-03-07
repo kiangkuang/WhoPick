@@ -1,6 +1,6 @@
 import { ActionContext } from '.';
 import { Action } from '../enum';
-import { getOptionsMenu } from '../formatter';
+import { getOptionsMenu } from '../keyboard';
 import { getQuestion } from '../repository';
 
 export async function editOptions(

@@ -1,5 +1,5 @@
 import { ActionContext } from '.';
-import { formatName } from '../formatter';
+import { getName } from '../formatter';
 import { addVote, getQuestion, removeVote } from '../repository';
 import { refresh } from './refresh';
 
@@ -10,7 +10,7 @@ export async function vote(ctx: ActionContext) {
 
   if (question!.isEnabled) {
     try {
-      await addVote(parseInt(optionId), ctx.from!.id, formatName(ctx.from!));
+      await addVote(parseInt(optionId), ctx.from!.id, getName(ctx.from!));
     } catch {
       await removeVote(parseInt(optionId), ctx.from!.id);
     }

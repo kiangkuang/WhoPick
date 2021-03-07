@@ -1,11 +1,11 @@
 import { Markup } from 'telegraf';
-import { ActionContext } from '.';
+import { ActionContext } from '../actions';
 import { getPoll } from '../formatter';
 import { getKeyboard } from '../keyboard';
 import { getQuestion } from '../repository';
 
 export async function refresh(ctx: ActionContext, isAdmin: boolean) {
-  const [, questionId] = ctx.match;
+  const [, questionId] = ctx.match.input.split(':');
 
   const question = await getQuestion(parseInt(questionId));
 

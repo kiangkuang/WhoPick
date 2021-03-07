@@ -4,7 +4,8 @@ import { Markup } from 'telegraf';
 import { InlineQueryResultArticle } from 'telegraf/typings/telegram-types';
 import { InlineQueryContext } from '.';
 import { getQuestions } from '../repository';
-import { getDescription, getKeyboard, toString } from '../formatter';
+import { getDescription, getPoll } from '../formatter';
+import { getKeyboard } from '../keyboard';
 
 export async function inlineQuery(ctx: InlineQueryContext) {
   const ownQuestions = getQuestions({
@@ -36,7 +37,7 @@ export async function inlineQuery(ctx: InlineQueryContext) {
     title: question.question,
     description: getDescription(question),
     input_message_content: {
-      message_text: toString(question),
+      message_text: getPoll(question),
       parse_mode: 'HTML',
       disable_web_page_preview: true,
     },
