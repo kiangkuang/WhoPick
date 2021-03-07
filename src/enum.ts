@@ -23,6 +23,5 @@ export enum Action {
 
 export function getActionRegExp(action: Action): RegExp {
   const paramsRegExp = '(\\w+)?:?'.repeat(3);
-  console.log(`^${action}:${paramsRegExp}`);
   return new RegExp(`^${action}:${paramsRegExp}`);
 }

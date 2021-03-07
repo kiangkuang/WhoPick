@@ -1,6 +1,7 @@
 import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
+import { addOptions } from './actions/addOptions';
 import { deleteOption } from './actions/deleteOption';
 import { edit } from './actions/edit';
 import { editOptions } from './actions/editOptions';
@@ -46,7 +47,7 @@ bot.action(getActionRegExp(Action.EditQuestion), editQuestion);
 bot.action(getActionRegExp(Action.EditOptionsMenu), editOptionsMenu);
 bot.action(getActionRegExp(Action.EditOptions), (ctx) => editOptions(ctx, Action.EditOption));
 bot.action(getActionRegExp(Action.DeleteOptions), (ctx) => editOptions(ctx, Action.DeleteOption));
-bot.action(getActionRegExp(Action.AddOptions), (ctx) => console.log(ctx.match.groups!.questionId));
+bot.action(getActionRegExp(Action.AddOptions), addOptions);
 bot.action(getActionRegExp(Action.EditOption), (ctx) => console.log(ctx.match.groups!.optionId));
 bot.action(getActionRegExp(Action.DeleteOption), deleteOption);
 
