@@ -94,7 +94,7 @@ export function getEditOptionsMenu(poll:Question) {
 
 export function getOptionsMenu(poll:Question, type: Action.EditOption | Action.DeleteOption) {
   const result = (poll.options ?? []).map((option) => [
-    Markup.button.callback(option.option, `${type}Option:${poll.id}:${option.id}`),
+    Markup.button.callback(option.option, `${type}:${poll.id}:${option.id}`),
   ]);
   result.push([Markup.button.callback('⬅ Back', `${Action.EditOptionsMenu}:${poll.id}`)]);
   return result;

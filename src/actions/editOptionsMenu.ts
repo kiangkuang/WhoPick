@@ -3,7 +3,7 @@ import { getEditOptionsMenu } from '../formatter';
 import { getQuestion } from '../repository';
 
 export async function editOptionsMenu(ctx: ActionContext) {
-  const [, questionId] = ctx.match.input.split(':');
+  const [, questionId] = ctx.match;
 
   const question = await getQuestion(parseInt(questionId));
 

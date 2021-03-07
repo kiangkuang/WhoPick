@@ -4,7 +4,7 @@ import { getKeyboard, toString } from '../formatter';
 import { getQuestion } from '../repository';
 
 export async function refresh(ctx: ActionContext, isAdmin: boolean) {
-  const [, questionId] = ctx.match.input.split(':');
+  const [, questionId] = ctx.match;
 
   const question = await getQuestion(parseInt(questionId));
 

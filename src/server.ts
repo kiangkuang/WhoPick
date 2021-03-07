@@ -1,6 +1,7 @@
 import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
+import { deleteOption } from './actions/deleteOption';
 import { edit } from './actions/edit';
 import { editOptions } from './actions/editOptions';
 import { editOptionsMenu } from './actions/editOptionsMenu';
@@ -45,10 +46,13 @@ bot.action(getActionRegExp(Action.EditQuestion), editQuestion);
 bot.action(getActionRegExp(Action.EditOptionsMenu), editOptionsMenu);
 bot.action(getActionRegExp(Action.EditOptions), (ctx) => editOptions(ctx, Action.EditOption));
 bot.action(getActionRegExp(Action.DeleteOptions), (ctx) => editOptions(ctx, Action.DeleteOption));
-
-bot.on('inline_query', inlineQuery);
+bot.action(getActionRegExp(Action.AddOptions), (ctx) => console.log(ctx.match.groups!.questionId));
+bot.action(getActionRegExp(Action.EditOption), (ctx) => console.log(ctx.match.groups!.optionId));
+bot.action(getActionRegExp(Action.DeleteOption), deleteOption);
 
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
+
+bot.on('inline_query', inlineQuery);
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
 
 bot.catch(((err) => {

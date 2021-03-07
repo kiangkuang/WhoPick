@@ -4,7 +4,7 @@ import { addVote, getQuestion, removeVote } from '../repository';
 import { refresh } from './refresh';
 
 export async function vote(ctx: ActionContext) {
-  const [, questionId, optionId] = ctx.match.input.split(':');
+  const [, questionId, optionId] = ctx.match;
 
   const question = await getQuestion(parseInt(questionId));
 

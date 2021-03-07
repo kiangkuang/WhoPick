@@ -7,7 +7,7 @@ export async function editOptions(
   ctx: ActionContext,
   type: Action.EditOption | Action.DeleteOption,
 ) {
-  const [, questionId] = ctx.match.input.split(':');
+  const [, questionId] = ctx.match;
 
   const question = await getQuestion(parseInt(questionId));
 
