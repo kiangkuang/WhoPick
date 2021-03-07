@@ -4,6 +4,7 @@ import { Scenes, session, Telegraf } from 'telegraf';
 import { addOptions } from './actions/addOptions';
 import { deleteOption } from './actions/deleteOption';
 import { edit } from './actions/edit';
+import { editOption } from './actions/editOption';
 import { editOptions } from './actions/editOptions';
 import { editOptionsMenu } from './actions/editOptionsMenu';
 import { editQuestion } from './actions/editQuestion';
@@ -13,6 +14,7 @@ import { setQuestion } from './actions/setQuestion';
 import { vote } from './actions/vote';
 import { Action, getActionRegExp, SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
+import { editOptionScene } from './scenes/editOption';
 import { editQuestionScene } from './scenes/editQuestion';
 import { showPollScene } from './scenes/showPoll';
 import { startScene } from './scenes/start';
@@ -31,6 +33,7 @@ const stage = new Scenes.Stage<WhoPickContext>([
   addOptionScene,
   showPollScene,
   editQuestionScene,
+  editOptionScene,
 ], {
   ttl: 300,
 });
@@ -48,7 +51,7 @@ bot.action(getActionRegExp(Action.EditOptionsMenu), editOptionsMenu);
 bot.action(getActionRegExp(Action.EditOptions), (ctx) => editOptions(ctx, Action.EditOption));
 bot.action(getActionRegExp(Action.DeleteOptions), (ctx) => editOptions(ctx, Action.DeleteOption));
 bot.action(getActionRegExp(Action.AddOptions), addOptions);
-bot.action(getActionRegExp(Action.EditOption), (ctx) => console.log(ctx.match.groups!.optionId));
+bot.action(getActionRegExp(Action.EditOption), editOption);
 bot.action(getActionRegExp(Action.DeleteOption), deleteOption);
 
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));

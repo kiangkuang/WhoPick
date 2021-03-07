@@ -86,8 +86,8 @@ export function getEditMenu(poll:Question) {
 export function getEditOptionsMenu(poll:Question) {
   return [
     [Markup.button.callback('➕ Add options', `${Action.AddOptions}:${poll.id}`)],
-    [Markup.button.callback('📝 Edit options', `${Action.EditOptions}:${poll.id}`)],
-    [Markup.button.callback('➖ Remove options', `${Action.DeleteOptions}:${poll.id}`)],
+    [Markup.button.callback('📝 Edit option', `${Action.EditOptions}:${poll.id}`)],
+    [Markup.button.callback('➖ Remove option', `${Action.DeleteOptions}:${poll.id}`)],
     [Markup.button.callback('⬅ Back', `${Action.Edit}:${poll.id}`)],
   ];
 }
