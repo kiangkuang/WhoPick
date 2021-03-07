@@ -46,7 +46,7 @@ function getQuestionKeyboard(poll: Question) {
   return result;
 }
 
-export function getKeyboard(poll:Question, isAdmin: boolean) {
+export function getKeyboard(poll: Question, isAdmin: boolean) {
   return isAdmin
     ? getAdminKeyboard(poll)
     : getQuestionKeyboard(poll);
@@ -75,7 +75,7 @@ export function getDescription(poll: Question) {
     .join(', ');
 }
 
-export function getEditMenu(poll:Question) {
+export function getEditMenu(poll: Question) {
   return [
     [Markup.button.callback('❓ Edit question', `${Action.EditQuestion}:${poll.id}`)],
     [Markup.button.callback('🔠 Edit options', `${Action.EditOptionsMenu}:${poll.id}`)],
@@ -83,7 +83,7 @@ export function getEditMenu(poll:Question) {
   ];
 }
 
-export function getEditOptionsMenu(poll:Question) {
+export function getEditOptionsMenu(poll: Question) {
   return [
     [Markup.button.callback('➕ Add options', `${Action.AddOptions}:${poll.id}`)],
     [Markup.button.callback('📝 Edit option', `${Action.EditOptions}:${poll.id}`)],
@@ -92,10 +92,16 @@ export function getEditOptionsMenu(poll:Question) {
   ];
 }
 
-export function getOptionsMenu(poll:Question, type: Action.EditOption | Action.DeleteOption) {
+export function getOptionsMenu(poll: Question, type: Action.EditOption | Action.DeleteOption) {
   const result = (poll.options ?? []).map((option) => [
     Markup.button.callback(option.option, `${type}:${poll.id}:${option.id}`),
   ]);
   result.push([Markup.button.callback('⬅ Back', `${Action.EditOptionsMenu}:${poll.id}`)]);
   return result;
+}
+
+export function getPollsKeyboard(polls: Question[]) {
+  return polls.map((poll) => [
+    Markup.button.callback(poll.question, `${Action.RefreshAdmin}:${poll.id}`),
+  ]);
 }

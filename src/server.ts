@@ -16,6 +16,7 @@ import { Action, getActionRegExp, SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
 import { editOptionScene } from './scenes/editOption';
 import { editQuestionScene } from './scenes/editQuestion';
+import { pollsScene } from './scenes/polls';
 import { showPollScene } from './scenes/showPoll';
 import { startScene } from './scenes/start';
 import { WhoPickContext } from './session';
@@ -34,6 +35,7 @@ const stage = new Scenes.Stage<WhoPickContext>([
   showPollScene,
   editQuestionScene,
   editOptionScene,
+  pollsScene,
 ], {
   ttl: 300,
 });
@@ -55,6 +57,7 @@ bot.action(getActionRegExp(Action.EditOption), editOption);
 bot.action(getActionRegExp(Action.DeleteOption), deleteOption);
 
 bot.command('start', (ctx) => ctx.scene.enter(SceneId.Start));
+bot.command('polls', (ctx) => ctx.scene.enter(SceneId.Polls));
 
 bot.on('inline_query', inlineQuery);
 bot.on('message', (ctx) => ctx.reply('Sorry I didn\'t get what you mean. Try sending /start to create a new poll!'));
