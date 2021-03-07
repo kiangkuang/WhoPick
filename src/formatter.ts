@@ -1,5 +1,6 @@
 import { Markup } from 'telegraf';
 import { User } from 'telegraf/typings/telegram-types';
+import { Action } from './enum';
 import { Question } from './repository/models/Question';
 
 export function toString(poll: Question) {
@@ -18,7 +19,7 @@ export function toString(poll: Question) {
 
 function getAdminKeyboard(poll: Question) {
   if (!poll.isEnabled) {
-    return [[Markup.button.callback('✅ Open poll', `setQuestion:${poll.id}:isEnabled:${!poll.isEnabled}`)]];
+    return [[Markup.button.callback('✅ Open poll', `${Action.SetQuestion}:${poll.id}:isEnabled:${!poll.isEnabled}`)]];
   }
 
   const shareText = poll.isShareAllowed
@@ -26,20 +27,22 @@ function getAdminKeyboard(poll: Question) {
     : '🔓 Set public (participants can share)';
   return [
     [Markup.button.switchToChat('💬 Share poll', poll.question)],
-    [Markup.button.callback('🔄 Refresh', `refreshAdmin:${poll.id}`)],
-    [Markup.button.callback(shareText, `setQuestion:${poll.id}:isShareAllowed:${!poll.isShareAllowed}`)],
-    [Markup.button.callback('📝 Edit poll', `edit:${poll.id}`)],
-    [Markup.button.callback('🚫 Close poll', `setQuestion:${poll.id}:isEnabled:${!poll.isEnabled}`)],
+    [Markup.button.callback('🔄 Refresh', `${Action.RefreshAdmin}:${poll.id}`)],
+    [Markup.button.callback(shareText, `${Action.SetQuestion}:${poll.id}:isShareAllowed:${!poll.isShareAllowed}`)],
+    [Markup.button.callback('📝 Edit poll', `${Action.Edit}:${poll.id}`)],
+    [Markup.button.callback('🚫 Close poll', `${Action.SetQuestion}:${poll.id}:isEnabled:${!poll.isEnabled}`)],
   ];
 }
 
 function getQuestionKeyboard(poll: Question) {
   if (!poll.isEnabled) {
-    return [[Markup.button.callback('🚫 Poll closed', `refresh:${poll.id}`)]];
+    return [[Markup.button.callback('🚫 Poll closed', `${Action.Refresh}:${poll.id}`)]];
   }
 
-  const result = (poll.options ?? []).map((option) => [Markup.button.callback(option.option, `vote:${poll.id}:${option.id}`)]);
-  result.push([Markup.button.callback('🔄 Refresh', `refresh:${poll.id}`)]);
+  const result = (poll.options ?? []).map((option) => [
+    Markup.button.callback(option.option, `${Action.Vote}:${poll.id}:${option.id}`),
+  ]);
+  result.push([Markup.button.callback('🔄 Refresh', `${Action.Refresh}:${poll.id}`)]);
   return result;
 }
 
@@ -74,12 +77,25 @@ export function getDescription(poll: Question) {
 
 export function getEditMenu(poll:Question) {
   return [
-    [Markup.button.callback('📝 Edit question', `editQuestion:${poll.id}`)],
-    [Markup.button.callback('📝 Edit options', `editOptions:${poll.id}`)],
-    [
-      Markup.button.callback('➕ Add options', `addOptions:${poll.id}`),
-      Markup.button.callback('➖ Remove options', `deleteOptions:${poll.id}`),
-    ],
-    [Markup.button.callback('⬅ Back', `refreshAdmin:${poll.id}`)],
+    [Markup.button.callback('❓ Edit question', `${Action.EditQuestion}:${poll.id}`)],
+    [Markup.button.callback('🔠 Edit options', `${Action.EditOptionsMenu}:${poll.id}`)],
+    [Markup.button.callback('⬅ Back', `${Action.RefreshAdmin}:${poll.id}`)],
   ];
+}
+
+export function getEditOptionsMenu(poll:Question) {
+  return [
+    [Markup.button.callback('➕ Add options', `${Action.AddOptions}:${poll.id}`)],
+    [Markup.button.callback('📝 Edit options', `${Action.EditOptions}:${poll.id}`)],
+    [Markup.button.callback('➖ Remove options', `${Action.DeleteOptions}:${poll.id}`)],
+    [Markup.button.callback('⬅ Back', `${Action.Edit}:${poll.id}`)],
+  ];
+}
+
+export function getOptionsMenu(poll:Question, type: Action.EditOption | Action.DeleteOption) {
+  const result = (poll.options ?? []).map((option) => [
+    Markup.button.callback(option.option, `${type}Option:${poll.id}:${option.id}`),
+  ]);
+  result.push([Markup.button.callback('⬅ Back', `${Action.EditOptionsMenu}:${poll.id}`)]);
+  return result;
 }

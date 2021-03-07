@@ -2,12 +2,14 @@ import Debug from 'debug';
 import express from 'express';
 import { Scenes, session, Telegraf } from 'telegraf';
 import { edit } from './actions/edit';
+import { editOptions } from './actions/editOptions';
+import { editOptionsMenu } from './actions/editOptionsMenu';
 import { editQuestion } from './actions/editQuestion';
 import { inlineQuery } from './actions/inlineQuery';
 import { refresh } from './actions/refresh';
 import { setQuestion } from './actions/setQuestion';
 import { vote } from './actions/vote';
-import { SceneId } from './enum';
+import { Action, getActionRegExp, SceneId } from './enum';
 import { addOptionScene } from './scenes/addOption';
 import { editQuestionScene } from './scenes/editQuestion';
 import { showPollScene } from './scenes/showPoll';
@@ -34,12 +36,15 @@ const stage = new Scenes.Stage<WhoPickContext>([
 bot.use(session());
 bot.use(stage.middleware());
 
-bot.action(/^refreshAdmin:/, (ctx) => refresh(ctx, true));
-bot.action(/^refresh:/, (ctx) => refresh(ctx, false));
-bot.action(/^vote:/, vote);
-bot.action(/^setQuestion:/, setQuestion);
-bot.action(/^edit:/, edit);
-bot.action(/^editQuestion:/, editQuestion);
+bot.action(getActionRegExp(Action.RefreshAdmin), (ctx) => refresh(ctx, true));
+bot.action(getActionRegExp(Action.Refresh), (ctx) => refresh(ctx, false));
+bot.action(getActionRegExp(Action.Vote), vote);
+bot.action(getActionRegExp(Action.SetQuestion), setQuestion);
+bot.action(getActionRegExp(Action.Edit), edit);
+bot.action(getActionRegExp(Action.EditQuestion), editQuestion);
+bot.action(getActionRegExp(Action.EditOptionsMenu), editOptionsMenu);
+bot.action(getActionRegExp(Action.EditOptions), (ctx) => editOptions(ctx, Action.EditOption));
+bot.action(getActionRegExp(Action.DeleteOptions), (ctx) => editOptions(ctx, Action.DeleteOption));
 
 bot.on('inline_query', inlineQuery);
 
