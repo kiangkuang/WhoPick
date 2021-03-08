@@ -1,4 +1,4 @@
-import { ActionContext } from '.';
+import { ActionContext } from '../context';
 import { removeOption } from '../repository';
 import { refresh } from './refresh';
 

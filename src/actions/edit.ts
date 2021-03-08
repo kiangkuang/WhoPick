@@ -1,4 +1,4 @@
-import { ActionContext } from '.';
+import { ActionContext } from '../context';
 import { getEditMenu } from '../keyboard';
 import { getQuestion } from '../repository';
 

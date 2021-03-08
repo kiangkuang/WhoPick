@@ -1,4 +1,4 @@
-import { ActionContext } from '.';
+import { ActionContext } from '../context';
 import { getName } from '../formatter';
 import { addVote, getQuestion, removeVote } from '../repository';
 import { refresh } from './refresh';

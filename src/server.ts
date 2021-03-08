@@ -19,7 +19,7 @@ import { editOptionScene } from './scenes/editOption';
 import { editQuestionScene } from './scenes/editQuestion';
 import { pollsScene } from './scenes/polls';
 import { showPollScene } from './scenes/showPoll';
-import { WhoPickContext } from './session';
+import { WhoPickContext } from './context';
 
 const debug = Debug('whopick');
 
@@ -56,7 +56,8 @@ bot.action(getActionRegExp(Action.AddOptions), addOptions);
 bot.action(getActionRegExp(Action.EditOption), editOption);
 bot.action(getActionRegExp(Action.DeleteOption), deleteOption);
 
-bot.command('start', (ctx) => ctx.scene.enter(SceneId.AddQuestion));
+bot.start((ctx) => ctx.scene.enter(SceneId.AddQuestion));
+
 bot.command('polls', (ctx) => ctx.scene.enter(SceneId.Polls));
 
 bot.on('inline_query', inlineQuery);

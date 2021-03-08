@@ -2,10 +2,10 @@ import { Op } from 'sequelize';
 import _ from 'lodash';
 import { Markup } from 'telegraf';
 import { InlineQueryResultArticle } from 'telegraf/typings/telegram-types';
-import { InlineQueryContext } from '.';
 import { getQuestions } from '../repository';
 import { getDescription, getPoll } from '../formatter';
 import { getKeyboard } from '../keyboard';
+import { InlineQueryContext } from '../context';
 
 export async function inlineQuery(ctx: InlineQueryContext) {
   const ownQuestions = getQuestions({
@@ -48,6 +48,6 @@ export async function inlineQuery(ctx: InlineQueryContext) {
     cache_time: 0,
     is_personal: true,
     switch_pm_text: 'Create new poll',
-    switch_pm_parameter: '0',
+    switch_pm_parameter: '_',
   });
 }

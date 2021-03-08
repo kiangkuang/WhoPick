@@ -1,7 +1,7 @@
 import { Scenes } from 'telegraf';
 import { SceneId } from '../enum';
 import { addOption, updateQuestion } from '../repository';
-import { WhoPickContext } from '../session';
+import { WhoPickContext } from '../context';
 
 export const addOptionScene = new Scenes.BaseScene<WhoPickContext>(SceneId.AddOption);
 

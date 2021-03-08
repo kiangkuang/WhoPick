@@ -1,5 +1,5 @@
 import { Markup } from 'telegraf';
-import { ActionContext } from '.';
+import { ActionContext } from '../context';
 import { getPoll } from '../formatter';
 import { getKeyboard } from '../keyboard';
 import { getQuestion } from '../repository';

@@ -3,7 +3,7 @@ import { SceneId } from '../enum';
 import { getPoll } from '../formatter';
 import { getKeyboard } from '../keyboard';
 import { getQuestion } from '../repository';
-import { WhoPickContext } from '../session';
+import { WhoPickContext } from '../context';
 
 export const showPollScene = new Scenes.BaseScene<WhoPickContext>(SceneId.ShowPoll);
 

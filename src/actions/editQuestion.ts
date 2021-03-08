@@ -1,4 +1,4 @@
-import { ActionContext } from '.';
+import { ActionContext } from '../context';
 import { SceneId } from '../enum';
 
 export async function editQuestion(ctx: ActionContext) {

@@ -2,7 +2,7 @@ import { Markup, Scenes } from 'telegraf';
 import { SceneId } from '../enum';
 import { getPollsKeyboard } from '../keyboard';
 import { getQuestions } from '../repository';
-import { WhoPickContext } from '../session';
+import { WhoPickContext } from '../context';
 
 export const pollsScene = new Scenes.BaseScene<WhoPickContext>(SceneId.Polls);
 
