@@ -21,6 +21,7 @@ import { pollsScene } from './scenes/polls';
 import { showPollScene } from './scenes/showPoll';
 import { startScene } from './scenes/start';
 import { WhoPickContext } from './context';
+import { backwardsCompatibleMiddleware } from './middleware';
 
 const debug = Debug('whopick');
 
@@ -44,6 +45,8 @@ const stage = new Scenes.Stage<WhoPickContext>([
 
 bot.use(session());
 bot.use(stage.middleware());
+
+bot.use(backwardsCompatibleMiddleware);
 
 bot.action(getActionRegExp(Action.RefreshAdmin), (ctx) => refresh(ctx, true));
 bot.action(getActionRegExp(Action.Refresh), (ctx) => refresh(ctx, false));
