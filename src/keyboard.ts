@@ -2,17 +2,17 @@ import { Markup } from 'telegraf';
 import { Action } from './enum';
 import { Question } from './repository/models/Question';
 
+const isShareAllowed: keyof Question = 'isShareAllowed';
+const isEnabled: keyof Question = 'isEnabled';
+
 function getAdminKeyboard(poll: Question) {
   if (!poll.isEnabled) {
-    return [[Markup.button.callback('✅ Open poll', `${Action.SetQuestion}:${poll.id}:isEnabled:${!poll.isEnabled}`)]];
+    return [[Markup.button.callback('✅ Open poll', `${Action.SetQuestion}:${poll.id}:${isEnabled}:${!poll.isEnabled}`)]];
   }
 
   const shareText = poll.isShareAllowed
     ? '🔒 Set private (only you can share)'
     : '🔓 Set public (participants can share)';
-
-  const isShareAllowed: keyof Question = 'isShareAllowed';
-  const isEnabled: keyof Question = 'isEnabled';
 
   return [
     [Markup.button.switchToChat('💬 Share poll', poll.question)],
