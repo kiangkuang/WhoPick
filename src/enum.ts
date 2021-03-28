@@ -1,4 +1,5 @@
 export enum SceneId {
+  Start = 'Start',
   AddQuestion = 'AddQuestion',
   AddOption = 'AddOption',
   ShowPoll = 'ShowPoll',

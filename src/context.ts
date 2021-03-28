@@ -24,6 +24,6 @@ export type CommandContext = NarrowedContext<WhoPickContext & {
   update_id: number;
 }>;
 
-export type StartContext = WhoPickContext & {
+export type StartContext = WhoPickContext | (WhoPickContext & {
   startPayload: string;
-};
+});
