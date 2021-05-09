@@ -11,7 +11,7 @@
     "node-telegram-bot-api": "^0.50.0",
     "sequelize": "^5.21.9",
     "sequelize-cli": "^5.5.1",
-    "url-parse": "^1.4.0"
+    "url-parse": "^1.5.0"
   },
   "devDependencies": {
     "husky": "^4.2.5",
