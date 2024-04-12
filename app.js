@@ -157,7 +157,7 @@ bot.on("inline_query", (msg) => {
         },
       }),
     ]).then((q) => {
-      var reply = [...q]
+      const reply = [...q]
         .filter((q, i, self) => self.findIndex((x) => x.id === q.id) === i)
         .sort((a, b) => b.updatedAt - a.updatedAt)
         .slice(0, 10)
@@ -214,7 +214,7 @@ function initBot() {
   const token = process.env.BOT_TOKEN;
 
   if (!token) {
-    throw "ERROR: env variables not set.";
+    throw new Error("env variables not set.");
   }
 
   if (process.env.NODE_ENV === "local") {
