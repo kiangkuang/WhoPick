@@ -157,28 +157,25 @@ bot.on("inline_query", (msg) => {
         },
       }),
     ]).then((q) => {
-      var questions = []
-        .concat(...q)
+      var reply = [...q]
         .filter((q, i, self) => self.findIndex((x) => x.id === q.id) === i)
         .sort((a, b) => b.updatedAt - a.updatedAt)
-        .slice(0, 10);
-
-      const reply = [];
-      questions.map((question) => {
-        const poll = new Poll(question);
-        reply.push({
-          type: "article",
-          id: question.id.toString(),
-          title: question.question,
-          description: poll.getDescription(),
-          input_message_content: {
-            message_text: poll.toString(),
-            parse_mode: "HTML",
-            disable_web_page_preview: true,
-          },
-          reply_markup: poll.getPollInlineKeyboard(false),
+        .slice(0, 10)
+        .map((question) => {
+          const poll = new Poll(question);
+          return {
+            type: "article",
+            id: question.id.toString(),
+            title: question.question,
+            description: poll.getDescription(),
+            input_message_content: {
+              message_text: poll.toString(),
+              parse_mode: "HTML",
+              disable_web_page_preview: true,
+            },
+            reply_markup: poll.getPollInlineKeyboard(false),
+          };
         });
-      });
       bot.answerInlineQuery(msg.id, reply, {
         cache_time: 0,
         is_personal: true,

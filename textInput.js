@@ -109,7 +109,6 @@ module.exports = class TextInput {
                 .then(() => {
                   this.transition(client, "showPoll");
                 });
-              1;
             });
           },
         },
