@@ -9,7 +9,7 @@
     "machina": "^4.0.2",
     "mysql2": "^2.1.0",
     "node-telegram-bot-api": "^0.50.0",
-    "sequelize": "^5.21.9",
+    "sequelize": "^5.22.5",
     "sequelize-cli": "^5.5.1",
     "url-parse": "^1.4.0"
   },
